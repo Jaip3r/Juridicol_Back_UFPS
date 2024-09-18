@@ -12,3 +12,262 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+
+// Modelos
+
+model Solicitante {
+
+  id Int @id @default(autoincrement())
+  nombre String
+  primer_apellido String
+  segundo_apellido String
+  tipo_identificacion TipoIdentificacion
+  numero_identificacion String @unique
+  genero Genero
+  fecha_nacimiento DateTime
+  lugar_nacimiento String
+  discapacidad Discapacidad
+  vulnerabilidad Vulnerabilidad
+  direccion_actual String
+  email String? @unique
+  numero_contacto String
+  perfilSocioeconomico PerfilSocioEconomico?
+  fecha_registro DateTime @default(now())
+  fecha_actualizcion DateTime @updatedAt
+  consultas Consulta[]
+
+}
+
+model PerfilSocioEconomico {
+
+  id Int @id @default(autoincrement())
+  nivel_estudio NivelEstudio
+  estrato Estrato
+  sisben Sisben
+  oficio String
+  nivel_ingreso_economico NivelIngresoEconomico
+  departamento String
+  ciudad String
+  barrio String
+  solicitante Solicitante @relation(fields: [id_solicitante], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  id_solicitante Int @unique
+
+}
+
+model Consulta {
+
+  id Int @id @default(autoincrement())
+  radicado String @unique
+  tipo_consulta TipoConsulta
+  area_derecho AreaDerecho
+  hechos String
+  pretensiones String
+  observaciones String
+  estado Estado @default(pendiente)
+  fecha_registro DateTime @default(now())
+  fecha_asignacion DateTime?
+  solicitante Solicitante @relation(fields: [id_solicitente], references: [id], onDelete: Restrict)
+  id_solicitente Int
+  estudiante_registro Usuario @relation("Registro", fields: [id_estudiante_registro], references: [id], onDelete: Restrict)
+  id_estudiante_registro Int
+  estudiante_asignado Usuario? @relation("Asignacion", fields: [id_estudiante_asignado], references: [id], onDelete: Restrict)
+  id_estudiante_asignado Int?
+  involucrados Consulta_involucrados[]
+  archivos Archivo[]
+
+}
+
+model Archivo {
+
+  id Int @id @default(autoincrement())
+  nombre String
+  ruta String
+  tipo TipoArchivo
+  fecha_carga DateTime @default(now())
+  fecha_actualizacion DateTime @updatedAt
+  consulta Consulta @relation(fields: [id_consulta], references: [id])
+  id_consulta Int
+
+}
+
+model Persona_involucrada {
+
+  id Int @id @default(autoincrement())
+  nombre String
+  telefono String 
+  correo String @unique
+  direccion String
+  fecha_registro DateTime @default(now())
+  fecha_actualizacion DateTime @updatedAt
+  consultas Consulta_involucrados[]
+
+}
+
+model Consulta_involucrados {
+
+  consulta Consulta @relation(fields: [id_consulta], references: [id], onDelete: Restrict)
+  id_consulta Int
+  involucrado Persona_involucrada @relation(fields: [id_involucrado], references: [id], onDelete: Restrict)
+  id_involucrado Int
+  tipo TipoInvolucrado
+
+  @@id([id_consulta, id_involucrado])
+
+}
+
+model Usuario {
+
+  id Int @id @default(autoincrement())
+  nombres String
+  apellidos String
+  codigo String @unique
+  email String @unique
+  password String
+  celular String
+  rol Rol
+  activo Boolean @default(true)
+  fecha_registro DateTime @default(now())
+  area_derecho AreaDerecho?
+  grupo Grupo?
+  puedeRecepionar Boolean? @default(true)
+  consultas_registradas Consulta[] @relation("Registro")
+  consultas_asignadas Consulta[] @relation("Asignacion")
+  resetPasswords ResetPassword[]
+  refreshToken RefreshToken?
+
+}
+
+model ResetPassword {
+
+  id Int @id @default(autoincrement())
+  token String @unique
+  user Usuario @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user_id Int 
+  fecha_expiracion DateTime
+
+}
+
+model RefreshToken {
+
+  id Int @id @default(autoincrement())
+  token String
+  user Usuario @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user_id Int @unique
+  fecha_actualizacion DateTime @updatedAt
+
+}
+
+
+// Enums
+
+enum Rol {
+  estudiante
+  profesor
+  administrador
+}
+
+enum AreaDerecho {
+  laboral
+  civil
+  publico
+  penal
+}
+
+enum Grupo {
+  A
+  B
+}
+
+enum TipoIdentificacion {
+  Cedula_de_ciudadania
+  Cedula_de_extranjeria
+  Pasaporte
+  Registro_civil
+  Permiso_especial_de_permanencia
+  VISA
+  Libreta_militar
+  Documento_de_identidad_indigena
+  Documento_de_identidad_de_comunidades_negras
+}
+
+enum Genero {
+  Masculino
+  Femenino
+  Otro
+}
+
+enum Discapacidad {
+  Ninguna
+  Fisica
+  Intelectual
+  Mental
+  Psicosocial
+  Multiple
+  Sensorial
+  Auditiva
+}
+
+enum Vulnerabilidad {
+  Ninguna
+  Persona_con_discapacidad
+  Grupos_etnicos
+  Mujer_cabeza_de_hogar
+  Reintegrados
+  Adulto_mayor
+  Victima_del_conflicto
+  Poblacion_desplazada
+}
+
+enum NivelEstudio {
+  Primaria
+  Secundaria
+  Tecnico
+  Tecnologo
+  Universitario
+  Posgrado
+}
+
+enum Estrato {
+  Estrato_1
+  Estrato_2
+  Estrato_3
+  Estrato_4
+  Estrato_5
+  Estrato_6
+}
+
+enum Sisben {
+  Grupo_A
+  Grupo_B
+  Grupo_C
+  Grupo_D
+}
+
+enum NivelIngresoEconomico {
+  Sin_ingresos
+  Entre_0_y_3_salarios_minimos
+  Entre_3_y_6_salarios_minimos
+  Superior_a_6_salarios_minimos
+}
+
+enum TipoConsulta {
+  asesoria_verbal
+  consulta
+}
+
+enum Estado {
+  pendiente
+  asignado
+  cerrado
+}
+
+enum TipoInvolucrado {
+  Accionante
+  Accionado
+}
+
+enum TipoArchivo {
+  PDF
+  Imagen
+}
