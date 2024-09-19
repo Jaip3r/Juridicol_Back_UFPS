@@ -5,6 +5,7 @@ import { CorrelationIdMiddleware, CORRELATION_ID_HEADER } from './common/middlew
 import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionFilter } from './common/filters/AllExceptionFilter';
 import { HttpExceptionFilter } from './common/filters/HttpExceptionFilter';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { HttpExceptionFilter } from './common/filters/HttpExceptionFilter';
         }
       }
     }),
+    UsersModule,
   ],
   controllers: [],
   providers: [
