@@ -1,0 +1,61 @@
+model Usuario {
+
+  id Int @id @default(autoincrement())
+  nombres String
+  apellidos String
+  codigo String @unique
+  email String @unique
+  password String
+  celular String
+  rol Rol
+  activo Boolean @default(true)
+  fecha_registro DateTime @default(now())
+  area_derecho AreaDerecho?
+  grupo Grupo?
+  puedeRecepionar Boolean? 
+  consultas_registradas Consulta[] @relation("Registro")
+  consultas_asignadas Consulta[] @relation("Asignacion")
+  resetPasswords ResetPassword[]
+  refreshToken RefreshToken?
+
+}
+
+model ResetPassword {
+
+  id Int @id @default(autoincrement())
+  token String @unique
+  user Usuario @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user_id Int 
+  fecha_expiracion DateTime
+
+}
+
+model RefreshToken {
+
+  id Int @id @default(autoincrement())
+  token String
+  user Usuario @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user_id Int @unique
+  fecha_actualizacion DateTime @updatedAt
+
+}
+
+// Enums
+
+enum Rol {
+  estudiante
+  profesor
+  administrador
+}
+
+enum AreaDerecho {
+  laboral
+  civil
+  publico
+  penal
+}
+
+enum Grupo {
+  A
+  B
+}
