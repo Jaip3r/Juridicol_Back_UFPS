@@ -1,6 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Logger } from '@nestjs/common';
+import { Controller, Get, Body, Patch, Param, Delete, Logger } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateIdParamDto } from 'src/common/dto/validate-idParam.dto';
 
@@ -10,22 +9,6 @@ export class UsersController {
   private readonly logger = new Logger(UsersController.name);
 
   constructor(private readonly usersService: UsersService) {}
-
-  @Post()
-  async create(@Body() createUserDto: CreateUserDto) {
-
-    const newUser = await this.usersService.createUser(createUserDto);
-    this.logger.log({
-      user: newUser,
-      request: {}
-    }, 'New user registered');
-    return {
-      status: 201,
-      message: 'Usuario registrado correctamente',
-      data: null
-    }
-
-  }
 
   @Get()
   async findAll() {

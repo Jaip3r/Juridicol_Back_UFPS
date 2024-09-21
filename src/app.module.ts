@@ -6,9 +6,16 @@ import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionFilter } from './common/filters/AllExceptionFilter';
 import { HttpExceptionFilter } from './common/filters/HttpExceptionFilter';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
+import { ConfigModule } from '@nestjs/config';
+import config from './config/configuration';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [config]
+    }),
     LoggerModule.forRoot({
       pinoHttp: {
         transport: {
@@ -58,6 +65,7 @@ import { UsersModule } from './users/users.module';
       }
     }),
     UsersModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [

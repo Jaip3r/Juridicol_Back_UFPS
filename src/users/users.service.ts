@@ -109,6 +109,17 @@ export class UsersService {
 
   }
 
+  async findOneUserByEmail(email: string) {
+
+    // Busca al usuario por el email proporcionado
+    return this.prisma.usuario.findUnique({
+      where: {
+        email
+      }
+    });
+
+  }
+
   async updateUser(id: number, data: Prisma.UsuarioUpdateInput) {
     
     const userExists = await this.findOneUser(id);
