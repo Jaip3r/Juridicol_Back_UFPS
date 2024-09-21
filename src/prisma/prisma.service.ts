@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
+import hashPasswordExtension from "./extensions/hashPasswordExtension";
 
 
 // Encapsula la lógica de conexión a la BD dentro de un servicio reutilizable
@@ -7,6 +8,12 @@ import { PrismaClient } from "@prisma/client";
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
 
     private readonly logger = new Logger(PrismaService.name);
+
+    constructor() {
+        super({
+            log: ['warn', 'error'],
+        });
+    }
 
     // Asegura que la conexión a la BD se realice al inicializar el módulo
     onModuleInit() {
@@ -17,7 +24,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     // Cierra la conexión a la BD al destruirse el módulo o cerrar la aplicación
     onModuleDestroy() {
-        this.$disconnect();
+        this.$disconnect()
+            .then(() => this.logger.log('Disconnected from DB'))
+            .catch((err) => this.logger.error(`Failed to disconnect from the database: ${err}`));
+    }
+
+    // Retorna el cliente con la extensión aplicada
+    get extendedUserClient() {
+        return this.$extends(hashPasswordExtension);
     }
 
 }
