@@ -2,6 +2,7 @@ import { Body, Controller, HttpCode, HttpStatus, Logger, Post } from '@nestjs/co
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { Public } from 'src/common/decorators/public-routes.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -30,6 +31,7 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Public()
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
 
