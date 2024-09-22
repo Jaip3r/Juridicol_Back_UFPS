@@ -3,6 +3,8 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Public } from 'src/common/decorators/public-routes.decorator';
+import { ActorUser } from 'src/common/decorators/actor-user.decorator';
+import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -15,11 +17,12 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('register')
-  async register(@Body() registerDto: RegisterDto) {
+  async register(@Body() registerDto: RegisterDto, @ActorUser() { sub, username, rol }: ActorUserInterface) {
 
     const userRegistered = await this.authService.register(registerDto);
     this.logger.log({
       user: userRegistered,
+      responsibleUser: { sub, username, rol },
       request: {}
     }, 'New user registered');
     return {

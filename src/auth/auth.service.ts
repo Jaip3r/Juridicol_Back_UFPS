@@ -30,7 +30,7 @@ export class AuthService {
         }
 
         // Construimos el payload del token de acceso
-        const payload = { sub: userExists.id, username: userExists.email, role: userExists.rol };
+        const payload = { sub: userExists.id, username: userExists.email, rol: userExists.rol };
 
         // Generamos el token de acceso
         const accessToken = await this.jwtService.signAsync(payload);

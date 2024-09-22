@@ -2,6 +2,8 @@ import { Controller, Get, Body, Patch, Param, Delete, Logger } from '@nestjs/com
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { validateIdParamDto } from 'src/common/dto/validate-idParam.dto';
+import { ActorUser } from 'src/common/decorators/actor-user.decorator';
+import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
 
 @Controller('users')
 export class UsersController {
@@ -37,13 +39,16 @@ export class UsersController {
 
   @Patch(':id')
   async update(@Param() params: validateIdParamDto, 
-    @Body() updateUserDto: UpdateUserDto) {
+    @Body() updateUserDto: UpdateUserDto,
+    @ActorUser() { sub, username, rol }: ActorUserInterface
+  ) {
 
       const { id } = params;
       const updatedUser = await this.usersService.updateUser(+id, updateUserDto);
       this.logger.log({
         newDataUser: updateUserDto,
-        user_identifier: id,
+        responsibleUser: { sub, username, rol },
+        user_updated_identifier: id,
         request: {}
       }, `User ${updatedUser.email} has been updated`);
       return {
@@ -55,13 +60,14 @@ export class UsersController {
   }
 
   @Delete(':id')
-  async remove(@Param() params: validateIdParamDto) {
+  async remove(@Param() params: validateIdParamDto, @ActorUser() { sub, username, rol }: ActorUserInterface) {
 
     const { id } = params;
     const deletedUser = await this.usersService.removeUser(+id);
     this.logger.log({
       deletedUser,
-      user_identifier: id,
+      responsibleUser: { sub, username, rol },
+      user_inactivated_identifier: id,
       request: {}
     }, `User ${deletedUser.email} has been inactivated`);
     
