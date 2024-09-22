@@ -20,6 +20,17 @@ export default Prisma.defineExtension((client) => {
                     }
                     return query(args);
 
+                },
+                async update({ args, query }) {
+
+                    console.log('intercepted update query');
+                    if (args.data.password) {
+                        const newPassword = args.data.password.toString();
+                        const saltRounds = await bcrypt.genSalt(12);
+                        args.data.password = await bcrypt.hash(newPassword, saltRounds);
+                    }
+                    return query(args);
+
                 }
 
             }

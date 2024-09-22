@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Logger, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Logger, Post, Put } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -7,6 +7,7 @@ import { ActorUser } from 'src/common/decorators/actor-user.decorator';
 import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
 import { Authorization } from './decorators/auth.decorator';
 import { Rol } from 'src/users/enum/rol.enum';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -16,6 +17,13 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService
   ) {}
+
+  @Get('profile')
+  profile(
+    @ActorUser() actor_user: ActorUserInterface
+  ) {
+    return this.authService.getProfileInfo(actor_user.sub);
+  }
 
   @HttpCode(HttpStatus.OK)
   @Authorization([Rol.ADMIN])
@@ -51,6 +59,26 @@ export class AuthController {
           message: `Welcome ${loginData.username}`,
           data: loginData.access_token
       }
+
+  }
+
+  @Put('change-password')
+  async changePassword(@Body() changePasswordDto: ChangePasswordDto, @ActorUser() actor_user: ActorUserInterface) {
+
+    const changePasswordData = await this.authService.changePassword(
+      actor_user.username,
+      changePasswordDto.oldPassword,
+      changePasswordDto.newPassword
+    );
+    this.logger.log({
+      user_identifier: changePasswordData.id,
+      request: {}
+    }, `User ${actor_user.username} has changed his/her password successfully`);
+    return {
+      status: 200,
+      message: 'Contraseña cambiada satisfactoriamente',
+      data: null
+    }
 
   }
 

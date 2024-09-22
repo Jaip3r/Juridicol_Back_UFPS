@@ -167,6 +167,18 @@ export class UsersService {
 
   }
 
+  updatePassword(id: number, newPassword: string) {
+
+    // Actualizamos la contraseña del usuario
+    return this.prisma.extendedUserClient.usuario.update({
+      where: { id },
+      data: {
+        password: newPassword
+      }
+    });
+
+  }
+
   async removeUser(id: number) {
 
     await this.findOneUser(id);
