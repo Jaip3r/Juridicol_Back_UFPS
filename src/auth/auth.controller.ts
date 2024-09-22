@@ -5,6 +5,8 @@ import { LoginDto } from './dto/login.dto';
 import { Public } from 'src/common/decorators/public-routes.decorator';
 import { ActorUser } from 'src/common/decorators/actor-user.decorator';
 import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
+import { Authorization } from './decorators/auth.decorator';
+import { Rol } from 'src/users/enum/rol.enum';
 
 @Controller('auth')
 export class AuthController {
@@ -16,6 +18,7 @@ export class AuthController {
   ) {}
 
   @HttpCode(HttpStatus.OK)
+  @Authorization([Rol.ADMIN])
   @Post('register')
   async register(@Body() registerDto: RegisterDto, @ActorUser() { sub, username, rol }: ActorUserInterface) {
 

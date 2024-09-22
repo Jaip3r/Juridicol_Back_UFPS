@@ -4,8 +4,11 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { validateIdParamDto } from 'src/common/dto/validate-idParam.dto';
 import { ActorUser } from 'src/common/decorators/actor-user.decorator';
 import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
+import { Authorization } from 'src/auth/decorators/auth.decorator';
+import { Rol } from './enum/rol.enum';
 
 @Controller('users')
+@Authorization([Rol.ADMIN])
 export class UsersController {
 
   private readonly logger = new Logger(UsersController.name);
