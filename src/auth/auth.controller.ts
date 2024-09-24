@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Logger, Post, Put } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Logger, Post, Put, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -10,6 +10,8 @@ import { Rol } from 'src/users/enum/rol.enum';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Response } from 'express';
+import { Cookies } from './decorators/get-cookies.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -25,6 +27,12 @@ export class AuthController {
     @ActorUser() actor_user: ActorUserInterface
   ) {
     return this.authService.getProfileInfo(actor_user.sub);
+  }
+
+  @Public()
+  @Get('refresh')
+  async refreshTokens(@Cookies("refreshToken") refreshToken: string) {
+    return this.authService.handleRefreshToken(refreshToken);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -49,9 +57,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Public()
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: Response) {
 
-    const loginData = await this.authService.login(loginDto);
+    const loginData = await this.authService.login(loginDto, response);
     this.logger.log({
       token: loginData.access_token,
       request: {}
@@ -61,6 +69,23 @@ export class AuthController {
           message: `Welcome ${loginData.username}`,
           data: loginData.access_token
       }
+
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('logout')
+  async logout(@Cookies("refreshToken") refreshToken: string, @Res({ passthrough: true }) response: Response) {
+
+    const logoutInfo = await this.authService.logout(refreshToken, response);
+    this.logger.log({
+      refreshToken,
+      request: {}
+    }, `User ${logoutInfo.user} has logged out successfully`);
+    return {
+      status: 200,
+      message: logoutInfo.message,
+      data: null
+    }
 
   }
 

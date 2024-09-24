@@ -13,6 +13,7 @@ export class MailService {
         sgMail.setApiKey(this.configService.get<string>('SENDGRID_API_KEY'));
     }
 
+    // Método encargado del envio de correos
     async sendMail(receptor: string, mailTemplate: object, subject: string) {
 
         // Estructuramos el mensaje de correo
@@ -34,6 +35,7 @@ export class MailService {
 
     }
 
+    // Método encargado de generar la plantilla para el correo
     private mailGenerator(responseBody: object) {
 
         const generator = new Mailgen({

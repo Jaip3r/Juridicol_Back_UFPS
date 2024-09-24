@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import { RegisterDto } from './dto/register.dto';
@@ -7,6 +7,8 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { nanoid } from 'nanoid';
 import { MailService } from 'src/mail/mail.service';
+import { ConfigService } from '@nestjs/config';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +19,8 @@ export class AuthService {
         private readonly prisma: PrismaService,
         private readonly usersService: UsersService,
         private readonly jwtService: JwtService,
-        private readonly mailService: MailService
+        private readonly mailService: MailService,
+        private readonly configService: ConfigService
     ){}
 
     getProfileInfo(id: number) {
@@ -36,7 +39,7 @@ export class AuthService {
     }
 
 
-    async login({ email, password }: LoginDto) {
+    async login({ email, password }: LoginDto, res: Response) {
 
         // Buscamos al usuario por el email proporcionado
         const userExists = await this.usersService.findOneUserByEmail(email);
@@ -48,13 +51,127 @@ export class AuthService {
         // Construimos el payload del token de acceso
         const payload = { sub: userExists.id, username: userExists.email, rol: userExists.rol };
 
-        // Generamos el token de acceso
-        const accessToken = await this.jwtService.signAsync(payload);
+        // Generamos el token de acceso y el refresh token en paralelo
+        const [accessToken, refreshToken] = await Promise.all([
+            this.jwtService.signAsync(payload),
+            this.jwtService.signAsync({ user_id: userExists.id }, { secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'), expiresIn: '15m' })
+        ]);
+
+        // Lógica para almacenar el refresh token en la base de datos
+        let existingToken = await this.prisma.refreshToken.findUnique({
+            where: {
+                user_id: userExists.id
+            }
+        });
+
+        // Si el token ya existe, lo actualizamos
+        if (existingToken) {
+
+            await this.prisma.refreshToken.update({
+                where: { id: existingToken.id },
+                data: {
+                    token: refreshToken
+                }
+            });
+
+        } else {
+
+            // Si no existe, creamos un nuevo refresh token
+            await this.prisma.refreshToken.create({
+                data: {
+                    token: refreshToken,
+                    user_id: userExists.id
+                }
+            });
+
+        }
+
+        // Guardamos el refresh token en una cookie HTTP-only
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 24 * 60 * 60 * 1000
+        });
 
         return {
             username: userExists.email,
             access_token: accessToken
         }
+
+    }
+
+
+    async logout(refreshToken: string, res: Response) {
+
+        // Verificamos que se recibio el  token correctamente
+        if (!refreshToken) {
+            throw new UnauthorizedException('Token de refresco no identificado');
+        }
+
+        // Verificar el token y extraer el ID del usuario
+        let payload = null;
+        try {
+         
+            payload = await this.jwtService.verifyAsync(refreshToken, { secret: this.configService.get<string>('REFRESH_TOKEN_SECRET') });
+            
+        } catch (error) {
+            throw new ForbiddenException('Token de refresco inválido o revocado');
+        }
+
+        // Verificar si el token existe en la base de datos
+        const existingToken = await this.prisma.refreshToken.findUnique({
+            where: { user_id: payload.user_id },
+            include: { user: true }
+        });
+
+        if (!existingToken || existingToken.token !== refreshToken) {
+            throw new UnauthorizedException('Token de refresco inválido o revocado');
+        }
+
+        // Eliminar el token de la BD
+        await this.prisma.refreshToken.delete({
+            where: { id: existingToken.id }
+        });
+
+        // Limpiamos la cookie HTPP-only en el cliente
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none'
+        });
+
+        return { 
+            user: existingToken.user.email,
+            message: 'Sesión finalizada correctamente' 
+        };
+
+    }
+
+
+    async handleRefreshToken(refreshToken: string) {
+
+        // Verificamos que se recibio el  token correctamente
+        if (!refreshToken) {
+            throw new UnauthorizedException('Token de refresco no identificado');
+        }
+
+        // Validamos el refresh token
+        let userInfo = null;
+        try {
+            userInfo = this.jwtService.verify(refreshToken, { secret: this.configService.get<string>('REFRESH_TOKEN_SECRET') });
+        } catch (err) {
+            throw new ForbiddenException('Token de refresco inválido o revocado');
+        }
+
+        // Si el token es válido, generamos un nuevo access token
+        const user = await this.usersService.findOneUser(userInfo.user_id);
+
+        const payload = { sub: user.id, username: user.email, rol: user.rol };
+        const newAccessToken = await this.jwtService.signAsync(payload, { expiresIn: '10m' });
+
+        // Retornamos el nuevo access token
+        return { access_token: newAccessToken };
 
     }
 
@@ -87,7 +204,7 @@ export class AuthService {
 
             // Verificamos la existencia del usuario
             const user = await this.prisma.usuario.findUnique({
-                where: { email }
+                where: { email, activo: true }
             });
 
             // Si el usuario existe continuamos con el proceso de restablecimiento de contraseña

@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { ValidationPipe } from '@nestjs/common';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
 
@@ -17,6 +18,9 @@ async function bootstrap() {
   // Logger de pino
   app.useLogger(app.get(Logger));
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
+
+  // Aplica el middleware cookie-parser globalmente
+  app.use(cookieParser());
 
   // Configuración de tuberia de validación global
   app.useGlobalPipes(
