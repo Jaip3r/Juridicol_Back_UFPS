@@ -8,6 +8,8 @@ import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
 import { Authorization } from './decorators/auth.decorator';
 import { Rol } from 'src/users/enum/rol.enum';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -77,6 +79,45 @@ export class AuthController {
     return {
       status: 200,
       message: 'Contraseña cambiada satisfactoriamente',
+      data: null
+    }
+
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Public()
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+
+    const forgotPasswordData = await this.authService.forgotPassword(forgotPasswordDto.email);
+    this.logger.log({
+      user_email: forgotPasswordDto.email,
+      request: {}
+    }, `User ${forgotPasswordDto.email} has requested a password change`);
+    return {
+      status: 200,
+      message: forgotPasswordData.message,
+      data: null
+    }
+
+  }
+
+  @Public()
+  @Put('reset-password')
+  async resetPassword(@Body() { newPassword, resetToken, userId }: ResetPasswordDto) {
+
+    const resetPasswordData = await this.authService.resetPassword(
+      newPassword,
+      resetToken,
+      +userId
+    );
+    this.logger.log({
+      resetToken,
+      request: {}
+    }, `User ${resetPasswordData.user_mail} has succesfully reset his password`);
+    return {
+      status: 200,
+      message: resetPasswordData.message,
       data: null
     }
 
