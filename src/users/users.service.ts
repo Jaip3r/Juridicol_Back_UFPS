@@ -72,6 +72,7 @@ export class UsersService {
         id: true,
         nombres: true,
         apellidos: true,
+        celular: true,
         email: true,
         codigo: true,
         rol: true,
@@ -88,17 +89,20 @@ export class UsersService {
     // Buscamos al usuario por su identificador
     const userExists = await this.prisma.usuario.findUnique({
       where: {
-        id
+        id,
+        activo: true
       }, 
       select: {
         id: true,
         nombres: true,
         apellidos: true,
+        celular: true,
         email: true,
         codigo: true,
         rol: true,
         area_derecho: true,
-        grupo: true
+        grupo: true,
+        fecha_registro: true
       }
     });
 

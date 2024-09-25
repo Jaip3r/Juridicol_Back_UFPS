@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
 
@@ -28,7 +29,17 @@ async function bootstrap() {
       whitelist: true, // Corta las propiedades que no formen parte del esquema definido
       transform: true // Transforma los datos enviados por la red en objetos tipados segun sus clases DTO
     })
-  )
+  );
+
+  // Configuración Swagger
+  const config = new DocumentBuilder()
+    .setTitle("Juridicol App API")
+    .setDescription("Documentación de la API del aplicativo Juridicol")
+    .setVersion("1.0")
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("docs", app, document);
 
   await app.listen(3000, () => {
     console.log(`Server listening on port 3000`);

@@ -6,15 +6,24 @@ import { ActorUser } from 'src/common/decorators/actor-user.decorator';
 import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
 import { Authorization } from 'src/auth/decorators/auth.decorator';
 import { Rol } from './enum/rol.enum';
+import { ApiBearerAuth, ApiBody, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiResponseDto } from 'src/common/dto/api-response.dto';
+import { UserResponseDto } from './dto/response/user-response.dto';
 
-@Controller('users')
+@ApiTags('users')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Usuario no autenticado' })
+@ApiForbiddenResponse({ description: 'Acceso no autorizado' })
 @Authorization([Rol.ADMIN])
+@Controller('users')
 export class UsersController {
 
   private readonly logger = new Logger(UsersController.name);
 
   constructor(private readonly usersService: UsersService) {}
 
+  @ApiOperation({ summary: 'Obtener todos los usuarios' }) 
+  @ApiOkResponse({ description: 'Usuarios obtenidos correctamente.', type: UserResponseDto, isArray: true })
   @Get()
   async findAll() {
 
@@ -27,6 +36,10 @@ export class UsersController {
 
   }
 
+  @ApiOperation({ summary: 'Obtener un usuario por ID' })
+  @ApiParam({ name: 'id', description: 'ID del usuario', type: String }) 
+  @ApiOkResponse({ description: 'Usuario obtenido correctamente.', type: UserResponseDto })
+  @ApiNotFoundResponse({ description: 'Usuario no encontrado.' })
   @Get(':id')
   async findOne(@Param() params: validateIdParamDto) {
 
@@ -40,6 +53,11 @@ export class UsersController {
 
   }
 
+  @ApiOperation({ summary: 'Actualizar un usuario' })
+  @ApiParam({ name: 'id', description: 'ID del usuario', type: String })
+  @ApiBody({ type: UpdateUserDto, description: 'Datos para actualizar el usuario' })
+  @ApiOkResponse({ description: 'Usuario actualizado correctamente.', type: ApiResponseDto })
+  @ApiNotFoundResponse({ description: 'Usuario no encontrado.' })
   @Patch(':id')
   async update(@Param() params: validateIdParamDto, 
     @Body() updateUserDto: UpdateUserDto,
@@ -62,6 +80,10 @@ export class UsersController {
   
   }
 
+  @ApiOperation({ summary: 'Eliminar un usuario' })
+  @ApiParam({ name: 'id', description: 'ID del usuario', type: String })
+  @ApiOkResponse({ description: 'Usuario eliminado correctamente.', type: ApiResponseDto })
+  @ApiNotFoundResponse({ description: 'Usuario no encontrado.' })
   @Delete(':id')
   async remove(@Param() params: validateIdParamDto, @ActorUser() { sub, username, rol }: ActorUserInterface) {
 
