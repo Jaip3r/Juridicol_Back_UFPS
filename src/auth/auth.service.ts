@@ -23,6 +23,9 @@ export class AuthService {
         private readonly configService: ConfigService
     ){}
 
+
+    /*---- getProfileInfo method ------*/
+
     getProfileInfo(id: number) {
 
         // Retornamos la información del usuario en el sistema
@@ -31,6 +34,8 @@ export class AuthService {
     }
 
 
+    /*---- register method ------*/
+
     register(data: RegisterDto) {
 
         // Retornamos el usuario registrado
@@ -38,6 +43,8 @@ export class AuthService {
 
     }
 
+
+    /*---- login method ------*/
 
     async login({ email, password }: LoginDto, res: Response) {
 
@@ -54,7 +61,7 @@ export class AuthService {
         // Generamos el token de acceso y el refresh token en paralelo
         const [accessToken, refreshToken] = await Promise.all([
             this.jwtService.signAsync(payload),
-            this.jwtService.signAsync({ user_id: userExists.id }, { secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'), expiresIn: '15m' })
+            this.jwtService.signAsync({ user_id: userExists.id }, { secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'), expiresIn: '1d' })
         ]);
 
         // Lógica para almacenar el refresh token en la base de datos
@@ -101,6 +108,8 @@ export class AuthService {
 
     }
 
+
+    /*---- logout method ------*/
 
     async logout(refreshToken: string, res: Response) {
 
@@ -149,6 +158,8 @@ export class AuthService {
     }
 
 
+    /*---- handleRefreshToken method ------*/
+
     async handleRefreshToken(refreshToken: string) {
 
         // Verificamos que se recibio el  token correctamente
@@ -168,13 +179,15 @@ export class AuthService {
         const user = await this.usersService.findOneUser(userInfo.user_id);
 
         const payload = { sub: user.id, username: user.email, rol: user.rol };
-        const newAccessToken = await this.jwtService.signAsync(payload, { expiresIn: '10m' });
+        const newAccessToken = await this.jwtService.signAsync(payload, { expiresIn: '30m' });
 
         // Retornamos el nuevo access token
         return { access_token: newAccessToken };
 
     }
 
+
+    /*---- changePassword method ------*/
 
     async changePassword(username: string, oldPassword: string, newPassword: string) {
 
@@ -197,6 +210,8 @@ export class AuthService {
 
     }
 
+
+    /*---- forgotPassword method ------*/
 
     async forgotPassword(email: string) {
 
@@ -273,6 +288,8 @@ export class AuthService {
     }
 
 
+    /*---- resetPassword method ------*/
+
     async resetPassword(newPassword: string, resetToken: string, userId: number) {
 
         return await this.prisma.$transaction(async (prisma) => {
@@ -341,7 +358,7 @@ export class AuthService {
     // Método auxiliar encargado de generar la plantilla para el correo de recuperar contraseña
     private generateResetPasswordTemplateEmail(nombre: string, resetString: string, userId: number) {
 
-        const redirectURL = `https://google.com`;
+        const redirectURL = `http://localhost:5173/reset-password/${userId}/${resetString}`;
 
         return {
 
@@ -353,7 +370,7 @@ export class AuthService {
                 button: {
                     color: '#eb343d',
                     text: 'Restablecer contraseña',
-                    link: `${redirectURL}/${userId}/${resetString}`
+                    link: `${redirectURL}`
                 }
             },
             outro: "Recuerda que este enlace caducará en 60 minutos, si no has solicitado el cambio de contraseña, por favor, ignora este mensaje",

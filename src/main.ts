@@ -20,6 +20,14 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
 
+  // Habilitar CORS
+  app.enableCors({
+    origin: ['http://localhost:5173'],
+    methods: ['POST', 'PATCH', 'DELETE', 'GET', 'PUT'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+  });
+
   // Aplica el middleware cookie-parser globalmente
   app.use(cookieParser());
 

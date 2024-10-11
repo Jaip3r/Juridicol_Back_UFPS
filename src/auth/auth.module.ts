@@ -19,7 +19,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
         global: true,
         secret: configService.get<string>('access_token_secret'),
         signOptions: {
-          expiresIn: '10m'
+          expiresIn: '1h'
         }
       }),
       inject: [ConfigService]
