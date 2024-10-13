@@ -22,9 +22,9 @@ import { TZDate } from "@date-fns/tz";
 @Controller('users')
 export class UsersController {
 
-  PAGE_SIZE = 5; 
-  TIME_ZONE = 'America/Bogota'; 
-  DATE_FORMAT = 'dd/MM/yyyy HH:mm:ss';
+  private readonly PAGE_SIZE = 3; 
+  private readonly TIME_ZONE = 'America/Bogota'; 
+  private readonly DATE_FORMAT = 'dd/MM/yyyy HH:mm:ss';
 
   private readonly logger = new Logger(UsersController.name);
 
@@ -47,28 +47,29 @@ export class UsersController {
       activo: activo !== undefined ? activo === 'true' : undefined,
     };
 
-    // Parsear el cursor compuesto desde una cadena JSON
-    let parsedCursor = undefined;
-    let direction: 'next' | 'prev' = 'next';
+    // Parsear el cursor recibido 
+    const parsedCursor = cursor 
+      ? new Date(cursor)
+      : prevCursor
+        ? new Date(prevCursor)
+        : undefined;
 
-    if (cursor) {
-      parsedCursor = JSON.parse(cursor);
-      parsedCursor.fecha_registro = new Date(parsedCursor.fecha_registro);
-    } else if (prevCursor) {
-      parsedCursor = JSON.parse(prevCursor);
-      parsedCursor.fecha_registro = new Date(parsedCursor.fecha_registro);
-      direction = 'prev';
-    }
+    // Determinar la dirección de la paginación - si es none quiere decir que estamos en la primera página
+    const direction: 'next' | 'prev' | 'none' = cursor
+      ? 'next'
+      : prevCursor
+        ? 'prev'
+        : 'none';
 
     // Objeto de configuración de paginación
     const pagination = {
-      cursor: parsedCursor,
+      cursor: parsedCursor ? { fecha_registro: parsedCursor } : undefined,
       limit: this.PAGE_SIZE, 
       direction
     };
 
     // Obtenemos los datos, cursores y reasignamos prevCursor a newPrevCursor
-    const { users, nextCursor, prevCursor: newPrevCursor, totalRecords } = await this.usersService.findAllUsers(filters, order, pagination);
+    const { users, nextCursor: nextCursorDate, prevCursor: newPrevCursorDate, totalRecords } = await this.usersService.findAllUsers(filters, order, pagination);
 
     // Formatear las fechas antes de enviarlas al cliente
     const formattedUsers = users.map(user => {
@@ -86,8 +87,8 @@ export class UsersController {
       status: 200,
       message: 'Usuarios obtenidos correctamente',
       data: formattedUsers,
-      nextCursor: nextCursor ? JSON.stringify(nextCursor) : null, // Devuelve el cursor para la siguiente página
-      prevCursor: newPrevCursor ? JSON.stringify(newPrevCursor) : null, // Devuelve el cursor para la anterior página
+      nextCursor: nextCursorDate ? nextCursorDate.toISOString() : null, // Devuelve el cursor para la siguiente página
+      prevCursor: newPrevCursorDate ? newPrevCursorDate.toISOString(): null, // Devuelve el cursor para la anterior página
       pageSize: this.PAGE_SIZE,
       totalRecords: totalRecords ? totalRecords : 0
     }

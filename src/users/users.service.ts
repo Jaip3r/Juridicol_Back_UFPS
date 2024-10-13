@@ -77,9 +77,9 @@ export class UsersService {
     },
     order: 'asc' | 'desc' = 'asc',
     pagination: {
-      cursor?: { fecha_registro: Date; id: number };
+      cursor?: { fecha_registro: Date };
       limit: number;
-      direction: 'next' | 'prev';
+      direction: 'next' | 'prev' | 'none';
     }
   ) {
 
@@ -99,26 +99,13 @@ export class UsersService {
       where,
     });
 
-    // Configurar el cursor compuesto para la paginación
-    let queryCursor = undefined;
-    if (cursor) {
-
-      queryCursor = { 
-
-        fecha_registro: cursor.fecha_registro,
-        id: cursor.id,
-        
-      }
-
-    }
-
-    // Invertimos el orden si estamos paginando hacia atrás
-    const adjustedOrder = direction === 'next' ? order : (order === 'asc' ? 'desc' : 'asc');
+    // Configurar el cursor para la paginación
+    const queryCursor = cursor ? { fecha_registro: cursor.fecha_registro } : undefined;
 
     // Obtenemos los usuarios basandono en los parametros de filtro y con paginación basada en cursor
     const users = await this.prisma.usuario.findMany({
-      where,
-      take: limit + 1,
+      take: (direction === 'prev' ? -1 : 1) * (limit + 1),
+      skip: cursor ? 1 : 0,
       cursor: queryCursor,
       select: {
         id: true,
@@ -133,9 +120,9 @@ export class UsersService {
         fecha_registro: true,
         activo: true
       },
+      where,
       orderBy: [
-        { fecha_registro: adjustedOrder },
-        { id: adjustedOrder }
+        { fecha_registro: order }
       ]
     });
 
@@ -148,50 +135,29 @@ export class UsersService {
       };
     }
 
-    // Si estamos paginando hacia atrás, invertir los resultados
-    if (direction === 'prev') {
-      users.reverse();
-    }
+    // Dependiendo de la dirección de paginación extraemos el elemento extra consultado
+    const newUsers = 
+      direction === 'prev'
+        ? users.slice(-limit)
+        : users.slice(0, limit);
 
-    let nextCursor = undefined;
-    let prevCursor = undefined;
+    // Verificación de si hay mas datos por paginar
+    const hasMore = users.length > limit;
 
-    // Si el número de usuarios recuperados es mayor que el limite, indica que hay más páginas disponibles
-    if (users.length > limit) {
+    // Determinamos el valor del cursor para paginar hacia adelante (si aplica)
+    let nextCursor =
+      direction === 'prev' || hasMore
+        ? newUsers.at(-1).fecha_registro
+        : undefined;
 
-      if (direction === 'next') {
-
-        const nextUser = users.pop(); // Remover el registro extra
-        nextCursor = { // Se define el siguiente cursor con los datos del último usuario
-          fecha_registro: nextUser.fecha_registro,
-          id: nextUser.id,
-        };
-
-      } else {
-       
-        const prevUser = users[0] // Obtener el cursor previo del primer registro previo
-        prevCursor = {
-          fecha_registro: prevUser.fecha_registro,
-          id: prevUser.id,
-        };
-
-      }
-
-    }
-
-    // Establecer el prevCursor para la siguiente solicitud
-    if (direction === 'next' && cursor) {
-      prevCursor = cursor;
-    } else if (direction === 'prev' && users.length > 0) {
-      nextCursor = {
-        fecha_registro: users[users.length - 1].fecha_registro,
-        id: users[users.length - 1].id,
-      };
-      users.pop(); // Remover el registro extra del final
-    }
+    // Determinamo el valor del cursor para paginar hacia atrás (si aplica)
+    let prevCursor = 
+      direction === 'next' || (direction === 'prev' && hasMore)
+        ? newUsers.at(0).fecha_registro
+        : undefined;
 
     return {
-      users,
+      users: newUsers,
       nextCursor,
       prevCursor,
       totalRecords

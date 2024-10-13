@@ -9,7 +9,7 @@ model Usuario {
   celular String
   rol Rol
   activo Boolean @default(true)
-  fecha_registro DateTime @default(now())
+  fecha_registro DateTime @unique @default(now())
   area_derecho AreaDerecho?
   grupo Grupo?
   puedeRecepionar Boolean? 
