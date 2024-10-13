@@ -12,12 +12,14 @@ model Solicitante {
   discapacidad Discapacidad
   vulnerabilidad Vulnerabilidad
   direccion_actual String
-  email String? @unique
+  email String?
   numero_contacto String
   perfilSocioeconomico PerfilSocioEconomico?
   fecha_registro DateTime @default(now())
   fecha_actualizcion DateTime @updatedAt
   consultas Consulta[]
+
+  @@index([email])
 
 }
 
