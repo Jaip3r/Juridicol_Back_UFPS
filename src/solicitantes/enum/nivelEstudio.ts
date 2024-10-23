@@ -1,4 +1,5 @@
 export enum NivelEstudio {
+    NONE = 'Ninguno',
     PRIM = 'Primaria',
     SEC = 'Secundaria',
     TECNI = 'Técnico',
