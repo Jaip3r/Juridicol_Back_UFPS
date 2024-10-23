@@ -10,6 +10,7 @@ import { MailService } from 'src/mail/mail.service';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 
+
 @Injectable()
 export class AuthService {
 
@@ -23,7 +24,7 @@ export class AuthService {
         private readonly configService: ConfigService
     ){}
 
-
+    
     /*---- getProfileInfo method ------*/
 
     getProfileInfo(id: number) {

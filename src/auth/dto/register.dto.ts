@@ -33,7 +33,7 @@ export class RegisterDto {
     })
     @IsNotEmpty({ message: "El código del usuario es requerido." })
     @IsNumberString({}, { message: "El código del usuario solo puede contener números." })
-    @Length(7, 7, { message: "El código del usuario debe contener exactamente 7 números." })
+    @Matches(/^\d{5}$|^\d{7}$/, { message: "El código del usuario debe contener exactamente 5 o 7 números."})
     codigo: string;
 
     @ApiProperty({

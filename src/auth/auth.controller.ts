@@ -12,12 +12,14 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Response } from 'express';
 import { Cookies } from './decorators/get-cookies.decorator';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { ApiResponseDto } from 'src/common/dto/api-response.dto';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { UserResponseDto } from 'src/users/dto/response/user-response.dto';
 import { RefreshTokenResponseDto } from './dto/response/refresh-token-response.dto';
+import { GenericApiResponseDto } from 'src/common/dto/generic-api-response.dto';
+
 
 @ApiTags('auth')
+@ApiInternalServerErrorResponse({ description: 'Error interno del servidor.' })
 @Controller('auth')
 export class AuthController {
 
@@ -28,8 +30,8 @@ export class AuthController {
   ) {}
 
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Obtener perfil de usuario' })
-  @ApiOkResponse({ description: 'Información del perfil del usuario.', type: UserResponseDto })
+  @ApiOperation({ summary: 'Obtener datos de perfil de usuario.' })
+  @ApiOkResponse({ description: 'Información del perfil del usuario', type: UserResponseDto })
   @ApiUnauthorizedResponse({ description: 'Error de autenticación de usuario' })
   @Get('profile')
   profile(
@@ -38,9 +40,10 @@ export class AuthController {
     return this.authService.getProfileInfo(actor_user.sub);
   }
 
+
   @Public()
-  @ApiOperation({ summary: 'Refrescar tokens' })
-  @ApiOkResponse({ description: 'Nuevos tokens generados exitosamente.', type: RefreshTokenResponseDto })
+  @ApiOperation({ summary: 'Refrescar token de acceso.' })
+  @ApiOkResponse({ description: 'Nuevo token de acceso generado exitosamente', type: RefreshTokenResponseDto })
   @ApiUnauthorizedResponse({ description: 'Error de autenticación de usuario' })
   @ApiForbiddenResponse({ description: 'Error de validación de token' })
   @Get('refresh')
@@ -48,11 +51,12 @@ export class AuthController {
     return this.authService.handleRefreshToken(refreshToken);
   }
 
+
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Registrar un nuevo usuario' })
-  @ApiBody({ type: RegisterDto, description: 'Datos del nuevo usuario' })
-  @ApiOkResponse({ description: 'Usuario registrado correctamente.', type: ApiResponseDto })
+  @ApiOperation({ summary: 'Registrar un nuevo usuario.' })
+  @ApiBody({ type: RegisterDto, description: 'Datos del usuario a registrar' })
+  @ApiOkResponse({ description: 'Usuario registrado correctamente', type: GenericApiResponseDto })
   @ApiBadRequestResponse({ description: 'Error de validación de datos' })
   @ApiUnauthorizedResponse({ description: 'Error de autenticación de usuario' })
   @ApiForbiddenResponse({ description: 'Acceso no autorizado' })
@@ -74,11 +78,12 @@ export class AuthController {
 
   }
 
+
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Iniciar sesión' })
+  @ApiOperation({ summary: 'Iniciar sesión.' })
   @ApiBody({ type: LoginDto, description: 'Credenciales de inicio de sesión' })
-  @ApiOkResponse({ description: 'Inicio de sesión exitoso. Devuelve el token de acceso.' })
+  @ApiOkResponse({ description: 'Inicio de sesión exitoso. Devuelve el token de acceso.', type: GenericApiResponseDto })
   @ApiUnauthorizedResponse({ description: 'Credenciales no válidas' })
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: Response) {
@@ -96,11 +101,12 @@ export class AuthController {
 
   }
 
+
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cerrar sesión' })
-  @ApiOkResponse({ description: 'Cierre de sesión exitoso.' })
-  @ApiUnauthorizedResponse({ description: 'Error de autenticación', type: ApiResponseDto })
+  @ApiOperation({ summary: 'Cierre de sesión.' })
+  @ApiOkResponse({ description: 'Cierre de sesión exitoso.', type: GenericApiResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Error de autenticación' })
   @Post('logout')
   async logout(@Cookies("refreshToken") refreshToken: string, @Res({ passthrough: true }) response: Response) {
 
@@ -117,10 +123,11 @@ export class AuthController {
 
   }
 
+
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Cambiar la contraseña' })
+  @ApiOperation({ summary: 'Cambio de contraseña.' })
   @ApiBody({ type: ChangePasswordDto, description: 'Datos para el cambio de contraseña' })
-  @ApiOkResponse({ description: 'Contraseña cambiada correctamente.', type: ApiResponseDto })
+  @ApiOkResponse({ description: 'Contraseña cambiada correctamente', type: GenericApiResponseDto })
   @ApiBadRequestResponse({ description: 'Error de validación de datos' })
   @ApiUnauthorizedResponse({ description: 'Error de autenticación de datos' })
   @Put('change-password')
@@ -143,11 +150,12 @@ export class AuthController {
 
   }
 
+
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Solicitud de restablecimiento de contraseña' })
+  @ApiOperation({ summary: 'Solicitud de restablecimiento de contraseña.' })
   @ApiBody({ type: ForgotPasswordDto, description: 'Datos para solicitar el restablecimiento de contraseña' })
-  @ApiOkResponse({ description: 'Correo enviado para restablecer la contraseña.', type: ApiResponseDto })
+  @ApiOkResponse({ description: 'Correo enviado para restablecer la contraseña', type: GenericApiResponseDto })
   @Post('forgot-password')
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
 
@@ -164,10 +172,11 @@ export class AuthController {
 
   }
 
+
   @Public()
-  @ApiOperation({ summary: 'Restablecer la contraseña' })
+  @ApiOperation({ summary: 'Restablecimiento de contraseña.' })
   @ApiBody({ type: ResetPasswordDto, description: 'Datos para restablecer la contraseña' })
-  @ApiOkResponse({ description: 'Contraseña restablecida correctamente.', type: ApiResponseDto })
+  @ApiOkResponse({ description: 'Contraseña restablecida correctamente', type: GenericApiResponseDto })
   @ApiUnauthorizedResponse({ description: 'Error de validación de token de restablecimiento' })
   @Put('reset-password')
   async resetPassword(@Body() { newPassword, resetToken, userId }: ResetPasswordDto) {
