@@ -2,21 +2,20 @@ model Solicitante {
 
   id Int @id @default(autoincrement())
   nombre String
-  primer_apellido String
-  segundo_apellido String
-  tipo_identificacion TipoIdentificacion
+  apellidos String
+  tipo_identificacion String
   numero_identificacion String @unique
-  genero Genero
+  genero String
   fecha_nacimiento DateTime
   lugar_nacimiento String
-  discapacidad Discapacidad
-  vulnerabilidad Vulnerabilidad
+  discapacidad String
+  vulnerabilidad String
   direccion_actual String
   email String?
   numero_contacto String
   perfilSocioeconomico PerfilSocioEconomico?
-  fecha_registro DateTime @default(now())
-  fecha_actualizcion DateTime @updatedAt
+  fecha_registro DateTime @unique @default(now())
+  fecha_actualizacion DateTime @updatedAt
   consultas Consulta[]
 
   @@index([email])
@@ -26,90 +25,15 @@ model Solicitante {
 model PerfilSocioEconomico {
 
   id Int @id @default(autoincrement())
-  nivel_estudio NivelEstudio
-  estrato Estrato
-  sisben Sisben
+  nivel_estudio String
+  estrato String
+  sisben String
   oficio String
-  nivel_ingreso_economico NivelIngresoEconomico
+  nivel_ingreso_economico String
   departamento String
   ciudad String
   barrio String
   solicitante Solicitante @relation(fields: [id_solicitante], references: [id], onDelete: Cascade, onUpdate: Restrict)
   id_solicitante Int @unique
 
-}
-
-
-// Enums
-
-enum TipoIdentificacion {
-  Cedula_de_ciudadania
-  Cedula_de_extranjeria
-  Pasaporte
-  Registro_civil
-  Permiso_especial_de_permanencia
-  VISA
-  Libreta_militar
-  Documento_de_identidad_indigena
-  Documento_de_identidad_de_comunidades_negras
-}
-
-enum Genero {
-  Masculino
-  Femenino
-  Otro
-}
-
-enum Discapacidad {
-  Ninguna
-  Fisica
-  Intelectual
-  Mental
-  Psicosocial
-  Multiple
-  Sensorial
-  Auditiva
-}
-
-enum Vulnerabilidad {
-  Ninguna
-  Persona_con_discapacidad
-  Grupos_etnicos
-  Mujer_cabeza_de_hogar
-  Reintegrados
-  Adulto_mayor
-  Victima_del_conflicto
-  Poblacion_desplazada
-}
-
-enum NivelEstudio {
-  Primaria
-  Secundaria
-  Tecnico
-  Tecnologo
-  Universitario
-  Posgrado
-}
-
-enum Estrato {
-  Estrato_1
-  Estrato_2
-  Estrato_3
-  Estrato_4
-  Estrato_5
-  Estrato_6
-}
-
-enum Sisben {
-  Grupo_A
-  Grupo_B
-  Grupo_C
-  Grupo_D
-}
-
-enum NivelIngresoEconomico {
-  Sin_ingresos
-  Entre_0_y_3_salarios_minimos
-  Entre_3_y_6_salarios_minimos
-  Superior_a_6_salarios_minimos
 }
