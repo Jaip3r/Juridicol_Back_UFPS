@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 
-export class ApiResponseDto<T> {
+export class GenericApiResponseDto {
 
     @ApiProperty({ description: 'Código de estado HTTP', example: 200 })
     status: number;
@@ -8,6 +8,7 @@ export class ApiResponseDto<T> {
     @ApiProperty({ description: 'Mensaje de la respuesta', example: 'Operación exitosa' })
     message: string;
 
-    data: T | null;
-    
+    @ApiProperty({ description: 'Datos adicionales, si los hay', example: null })
+    data: any;
+
 }
