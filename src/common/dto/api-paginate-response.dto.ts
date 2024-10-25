@@ -19,7 +19,4 @@ export class ApiPaginateResponseDto<T> {
     @ApiProperty({ description: 'Tamaño de la página', example: 5 })
     pageSize: number;
 
-    @ApiProperty({ description: 'Total de registros obtenidos', example: 50 })
-    totalRecords: number;
-
 }
