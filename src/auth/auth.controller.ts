@@ -13,7 +13,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Response } from 'express';
 import { Cookies } from './decorators/get-cookies.decorator';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { UserResponseDto } from 'src/users/dto/response/user-response.dto';
+import { UserDto } from 'src/users/dto/user.dto';
 import { RefreshTokenResponseDto } from './dto/response/refresh-token-response.dto';
 import { GenericApiResponseDto } from 'src/common/dto/generic-api-response.dto';
 
@@ -27,11 +27,11 @@ export class AuthController {
 
   constructor(
     private readonly authService: AuthService
-  ) {}
+  ) { }
 
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener datos de perfil de usuario.' })
-  @ApiOkResponse({ description: 'Información del perfil del usuario', type: UserResponseDto })
+  @ApiOkResponse({ description: 'Información del perfil del usuario', type: UserDto })
   @ApiUnauthorizedResponse({ description: 'Error de autenticación de usuario' })
   @Get('profile')
   profile(
@@ -92,12 +92,12 @@ export class AuthController {
     this.logger.log({
       token: loginData.access_token,
       request: {}
-      }, `User ${loginData.username} logged successfully`);
-      return {
-          status: 200,
-          message: `Welcome ${loginData.username}`,
-          data: loginData.access_token
-      }
+    }, `User ${loginData.username} logged successfully`);
+    return {
+      status: 200,
+      message: `Welcome ${loginData.username}`,
+      data: loginData.access_token
+    }
 
   }
 

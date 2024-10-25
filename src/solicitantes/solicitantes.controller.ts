@@ -70,7 +70,7 @@ export class SolicitantesController {
   }
 
 
-  @ApiOperation({ summary: 'Obtener solicitantes usando filtros y paginados por cursor.' }) 
+  @ApiOperation({ summary: 'Obtener solicitantes aplicando filtros y paginados por cursor.' }) 
   @ApiOkResponse({
     description: 'Solicitantes obtenidos correctamente',
     type: SolicitantePaginateResponseDto

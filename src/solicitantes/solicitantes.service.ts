@@ -9,6 +9,7 @@ import { NivelEstudio } from './enum/nivelEstudio';
 import { Sisben } from './enum/sisben';
 import { Estrato } from './enum/estrato';
 import { Prisma } from '@prisma/client';
+import { buildWherePrismaClientClause } from 'src/common/utils/buildPrismaClientWhereClause';
 
 
 @Injectable()
@@ -180,7 +181,7 @@ export class SolicitantesService {
   ) {
 
     // Creamos el objeto where con los filtros proporcionados
-    const where = this.buildWherePrismaClientClause(filters);
+    const where = this.buildSolicitanteWherePrismaClientClause(filters);
 
     // Devolvemos la info obtenida
     return this.prisma.solicitante.findMany({
@@ -362,8 +363,8 @@ export class SolicitantesService {
     // Destructuramos los datos para manejar la paginación
     const { cursor, limit, direction } = pagination;
 
-    // Construimos el objeto de filtrado dinámicamente
-    const where = this.buildWherePrismaClientClause(filters);
+    // Creamos el objeto where con los filtros proporcionados
+    const where = this.buildSolicitanteWherePrismaClientClause(filters);
 
     // Configuramos el cursor para la paginación
     const queryCursor = cursor
@@ -428,7 +429,7 @@ export class SolicitantesService {
     const { cursor, limit, direction } = pagination;
 
     // Construimos el array de condiciones 
-    const conditions = this.buildConditionsQueryRawClause(filters, searchItem);
+    const conditions = this.buildSolicitanteConditionsQueryRawClause(filters, searchItem);
 
     // Ajustamos los operadores de comparación y el orden de los datos
     let operator: string;
@@ -530,8 +531,8 @@ export class SolicitantesService {
     }
   ) {
 
-    // Construimos el objeto de filtrado dinámicamente
-    const where = this.buildWherePrismaClientClause(filters);
+    // Creamos el objeto where con los filtros proporcionados
+    const where = this.buildSolicitanteWherePrismaClientClause(filters);
 
     // Obtenemos el total de registros que coinciden con los filtros
     const totalRecords = await this.prisma.solicitante.count({
@@ -557,7 +558,7 @@ export class SolicitantesService {
     searchItem?: string
   ) {
 
-    const conditions = this.buildConditionsQueryRawClause(filters, searchItem);
+    const conditions = this.buildSolicitanteConditionsQueryRawClause(filters, searchItem);
 
     // Unimos todas las condiciones con 'AND'
     const whereClause = conditions.length
@@ -581,34 +582,33 @@ export class SolicitantesService {
 
   // Util Methods
 
-  private buildWherePrismaClientClause(
-    filters: {
-      tipo_identificacion?: TipoIdentificacion;
-      discapacidad?: Discapacidad;
-      vulnerabilidad?: Vulnerabilidad;
-      nivel_estudio?: NivelEstudio;
-      sisben?: Sisben;
-      estrato?: Estrato;
-    }
-  ) {
+  private buildSolicitanteWherePrismaClientClause(filters: {
+    tipo_identificacion?: TipoIdentificacion;
+    discapacidad?: Discapacidad;
+    vulnerabilidad?: Vulnerabilidad;
+    nivel_estudio?: NivelEstudio;
+    sisben?: Sisben;
+    estrato?: Estrato;
+  }) {
 
-    return {
-      ...(filters.tipo_identificacion && { tipo_identificacion: filters.tipo_identificacion }),
-      ...(filters.discapacidad && { discapacidad: filters.discapacidad }),
-      ...(filters.vulnerabilidad && { vulnerabilidad: filters.vulnerabilidad }),
-      ...((filters.nivel_estudio || filters.sisben || filters.estrato) && {
-        perfilSocioeconomico: {
-          ...(filters.nivel_estudio && { nivel_estudio: filters.nivel_estudio }),
-          ...(filters.sisben && { sisben: filters.sisben }),
-          ...(filters.estrato && { estrato: filters.estrato })
-        }
-      })
+    // Aplicamos formato a los filtros 
+    const formattedFilters = {
+      tipo_identificacion: filters.tipo_identificacion,
+      discapacidad: filters.discapacidad,
+      vulnerabilidad: filters.vulnerabilidad,
+      perfilSocioeconomico: {
+        nivel_estudio: filters.nivel_estudio,
+        sisben: filters.sisben,
+        estrato: filters.estrato
+      }
     }
+
+    // Construimos el objeto de filtrado dinámicamente
+    return buildWherePrismaClientClause(formattedFilters);
 
   }
 
-
-  private buildConditionsQueryRawClause(
+  private buildSolicitanteConditionsQueryRawClause(
     filters: {
       tipo_identificacion?: TipoIdentificacion;
       discapacidad?: Discapacidad;

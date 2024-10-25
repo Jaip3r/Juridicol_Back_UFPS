@@ -12,7 +12,12 @@ export function buildWherePrismaClientClause (filters: any) {
             if (typeof value === 'object' && !Array.isArray(value)) {
 
                 // Si el valor es un objeto, llamamos recursivamente
-                whereClause[key] = buildWherePrismaClientClause(value);
+                const nestedWhere = buildWherePrismaClientClause(value);
+
+                // Verificamos si el objeto anidado no está vacío
+                if (Object.keys(nestedWhere).length > 0) {
+                    whereClause[key] = nestedWhere;
+                }
 
             }else {
                 whereClause[key] = value;

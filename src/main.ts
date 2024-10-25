@@ -5,6 +5,8 @@ import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SolicitanteDto } from './solicitantes/dto/solicitante.dto';
+import { SolicitantePaginateResponseDto } from './solicitantes/dto/response/solicitante-paginate-reponse.dto';
 
 async function bootstrap() {
 
@@ -46,12 +48,14 @@ async function bootstrap() {
     .setVersion("1.0")
     .addBearerAuth()
     .build();
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config, {
+    extraModels: [SolicitantePaginateResponseDto, SolicitanteDto]
+  });
   SwaggerModule.setup("docs", app, document);
 
   await app.listen(3000, () => {
     console.log(`Server listening on port 3000`);
   });
-  
+
 }
 bootstrap();
