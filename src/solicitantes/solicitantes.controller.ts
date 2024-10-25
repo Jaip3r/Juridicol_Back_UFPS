@@ -292,6 +292,7 @@ export class SolicitantesController {
       'Dirección Actual': solicitante.direccion_actual,
       'Correo Electrónico': solicitante.email,
       'Número de Contacto': solicitante.numero_contacto,
+      'Fecha de Registro': format(new TZDate(solicitante.fecha_registro, this.TIME_ZONE), this.DATE_FORMAT),
       'Nivel de Estudio': solicitante.perfilSocioeconomico.nivel_estudio,
       'Estrato': solicitante.perfilSocioeconomico.estrato,
       'Sisben': solicitante.perfilSocioeconomico.sisben,
@@ -317,6 +318,7 @@ export class SolicitantesController {
       { wch: 35 }, // Dirección Actual
       { wch: 30 }, // Correo Electrónico
       { wch: 25 }, // Número de Contacto
+      { wch: 25 }, // Fecha de registro
       { wch: 15 }, // Nivel de Estudio
       { wch: 10 }, // Estrato
       { wch: 15 }, // Sisben

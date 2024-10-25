@@ -198,6 +198,7 @@ export class SolicitantesService {
         direccion_actual: true,
         email: true,
         numero_contacto: true,
+        fecha_registro: true,
         perfilSocioeconomico: {
           select: {
             nivel_estudio: true,
