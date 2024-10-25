@@ -10,6 +10,7 @@ import { Sisben } from './enum/sisben';
 import { Estrato } from './enum/estrato';
 import { Prisma } from '@prisma/client';
 
+
 @Injectable()
 export class SolicitantesService {
 
@@ -22,8 +23,8 @@ export class SolicitantesService {
     // Verificamos la unicidad del documento de identidad
     const documentExists = await this.prisma.solicitante.findUnique({
       where: {
-        numero_identificacion: data.numero_identificacion,
-      },
+        numero_identificacion: data.numero_identificacion
+      }
     });
 
     if (documentExists) throw new BadRequestException(`El número de documento ya se encuentra registrado`);
@@ -33,13 +34,13 @@ export class SolicitantesService {
 
       const sharedMail = await this.prisma.solicitante.count({
         where: {
-          email: data.email,
-        },
+          email: data.email
+        }
       });
 
       if (sharedMail >= 2) {
         throw new BadRequestException(
-          'Ya hay demasiadas personas compartiendo el mismo correo',
+          'Ya hay demasiadas personas compartiendo el mismo correo'
         );
       }
 
@@ -69,7 +70,7 @@ export class SolicitantesService {
             nivel_ingreso_economico: data.nivel_ingreso_economico,
             departamento: data.departamento,
             ciudad: data.ciudad,
-            barrio: data.barrio,
+            barrio: data.barrio
           }
         }
       }
@@ -102,7 +103,7 @@ export class SolicitantesService {
     const { limit, direction } = pagination;
 
     // Consultamos los solicitantes en base a al valor de los parametros
-    const { totalRecords, solicitantes } = searchItem !== undefined && searchItem !== '' 
+    const solicitantes = searchItem !== undefined && searchItem !== ''
       ? await this.findAllSolicitantesWithQueryRaw(filters, order, pagination, searchItem)
       : await this.findAllSolicitantesWithPrismaClient(filters, order, pagination);
 
@@ -111,7 +112,7 @@ export class SolicitantesService {
       return {
         solicitantes: [],
         nextCursor: null,
-        prevCursor: null,
+        prevCursor: null
       };
     }
 
@@ -138,9 +139,29 @@ export class SolicitantesService {
     return {
       solicitantes: definedSolicitantes,
       nextCursor,
-      prevCursor,
-      totalRecords,
+      prevCursor
     };
+
+  }
+
+
+  /*---- countAllSolicitantesWithFilters method ------*/
+
+  countAllSolicitantesWithFilters(
+    filters: {
+      tipo_identificacion?: TipoIdentificacion;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    },
+    searchItem?: string
+  ) {
+
+    return searchItem !== undefined && searchItem !== ''
+      ? this.countAllSolicitantesWithQueryRaw(filters, searchItem)
+      : this.countAllSolicitantesWithPrismaClient(filters);
 
   }
 
@@ -159,18 +180,7 @@ export class SolicitantesService {
   ) {
 
     // Creamos el objeto where con los filtros proporcionados
-    const where = {
-      ...(filters.tipo_identificacion && { tipo_identificacion: filters.tipo_identificacion }),
-      ...(filters.discapacidad && { discapacidad: filters.discapacidad }),
-      ...(filters.vulnerabilidad && { vulnerabilidad: filters.vulnerabilidad }),
-      ...((filters.nivel_estudio || filters.sisben || filters.estrato) && {
-        perfilSocioeconomico: {
-          ...(filters.nivel_estudio && { nivel_estudio: filters.nivel_estudio }),
-          ...(filters.sisben && { sisben: filters.sisben }),
-          ...(filters.estrato && { estrato: filters.estrato })
-        }
-      })
-    };
+    const where = this.buildWherePrismaClientClause(filters);
 
     // Devolvemos la info obtenida
     return this.prisma.solicitante.findMany({
@@ -266,12 +276,12 @@ export class SolicitantesService {
     ) {
 
       const documentExists = await this.prisma.solicitante.findUnique({
-        where: { numero_identificacion: data.numero_identificacion },
+        where: { numero_identificacion: data.numero_identificacion }
       });
 
       if (documentExists) {
         throw new BadRequestException(
-          `El número de documento ya se encuentra registrado.`,
+          `El número de documento ya se encuentra registrado.`
         );
       }
 
@@ -282,13 +292,13 @@ export class SolicitantesService {
 
       const emailCount = await this.prisma.solicitante.count({
         where: {
-          email: data.email,
-        },
+          email: data.email
+        }
       });
 
       if (emailCount >= 2)
         throw new BadRequestException(
-          'Ya hay demasiadas personas compartiendo el mismo correo.',
+          'Ya hay demasiadas personas compartiendo el mismo correo.'
         );
 
     }
@@ -339,8 +349,8 @@ export class SolicitantesService {
       nivel_estudio?: NivelEstudio;
       sisben?: Sisben;
       estrato?: Estrato;
-    }, 
-    order: 'asc' | 'desc' = 'desc', 
+    },
+    order: 'asc' | 'desc' = 'desc',
     pagination: {
       cursor?: { fecha_registro: Date };
       limit: number;
@@ -352,23 +362,7 @@ export class SolicitantesService {
     const { cursor, limit, direction } = pagination;
 
     // Construimos el objeto de filtrado dinámicamente
-    const where = {
-      ...(filters.tipo_identificacion && { tipo_identificacion: filters.tipo_identificacion }),
-      ...(filters.discapacidad && { discapacidad: filters.discapacidad }),
-      ...(filters.vulnerabilidad && { vulnerabilidad: filters.vulnerabilidad }),
-      ...((filters.nivel_estudio || filters.sisben || filters.estrato) && {
-        perfilSocioeconomico: {
-          ...(filters.nivel_estudio && { nivel_estudio: filters.nivel_estudio }),
-          ...(filters.sisben && { sisben: filters.sisben }),
-          ...(filters.estrato && { estrato: filters.estrato })
-        }
-      })
-    };
-
-    // Obtenemos el total de registros que coinciden con los filtros
-    const totalRecords = await this.prisma.solicitante.count({
-      where,
-    });
+    const where = this.buildWherePrismaClientClause(filters);
 
     // Configuramos el cursor para la paginación
     const queryCursor = cursor
@@ -401,10 +395,10 @@ export class SolicitantesService {
         },
       },
       where,
-      orderBy: [{ fecha_registro: order }],
+      orderBy: [{ fecha_registro: order }]
     });
 
-    return { totalRecords, solicitantes };
+    return solicitantes;
 
   }
 
@@ -419,8 +413,8 @@ export class SolicitantesService {
       nivel_estudio?: NivelEstudio;
       sisben?: Sisben;
       estrato?: Estrato;
-    }, 
-    order: 'asc' | 'desc' = 'desc', 
+    },
+    order: 'asc' | 'desc' = 'desc',
     pagination: {
       cursor?: { fecha_registro: Date };
       limit: number;
@@ -433,43 +427,7 @@ export class SolicitantesService {
     const { cursor, limit, direction } = pagination;
 
     // Construimos el array de condiciones 
-    const conditions: Prisma.Sql[] = [];
-
-    // Agregamos la condición de búsqueda por texto
-    const searchQuery = searchItem.replace(' ', ' & ') + ':*';
-    conditions.push(Prisma.sql`to_tsvector('spanish', lower("nombre") || ' ' || lower("apellidos")) @@ to_tsquery('spanish', ${searchQuery})`);
-
-    // Añadimos los filtros adicionales si se da el caso
-    if (filters.tipo_identificacion) {
-      conditions.push(
-        Prisma.sql`"Solicitante"."tipo_identificacion" = ${filters.tipo_identificacion}`
-      );
-    }
-
-    if (filters.discapacidad) {
-      conditions.push(
-        Prisma.sql`"Solicitante"."discapacidad" = ${filters.discapacidad}`
-      );
-    }
-
-    if (filters.vulnerabilidad) {
-      conditions.push(
-        Prisma.sql`"Solicitante"."vulnerabilidad" = ${filters.vulnerabilidad}`
-      );
-    }
-
-    // Filtros de la tabla PerfilSocioeconomico
-    if (filters.nivel_estudio) {
-      conditions.push(Prisma.sql`"PerfilSocioEconomico"."nivel_estudio" = ${filters.nivel_estudio}`);
-    }
-
-    if (filters.sisben) {
-      conditions.push(Prisma.sql`"PerfilSocioEconomico"."sisben" = ${filters.sisben}`);
-    }
-  
-    if (filters.estrato) {
-      conditions.push(Prisma.sql`"PerfilSocioEconomico"."estrato" = ${filters.estrato}`);
-    }
+    const conditions = this.buildConditionsQueryRawClause(filters, searchItem);
 
     // Ajustamos los operadores de comparación y el orden de los datos
     let operator: string;
@@ -512,14 +470,14 @@ export class SolicitantesService {
     // Unimos todas las condiciones con 'AND'
     const whereClause = conditions.length
       ? Prisma.join(conditions, ' AND ')
-      : Prisma.sql`TRUE`;
+      : undefined;
 
     // Configuramos el número de registros a obtener (take)
     const takeClause = limit + 1;
 
     // Configuramos el offset
     const offsetClause = cursor ? Prisma.sql`OFFSET 1` : Prisma.empty;
-    
+
     // Construimos y ejecutamos la consulta
     const solicitantes = await this.prisma.$queryRaw<
       any[]
@@ -553,20 +511,154 @@ export class SolicitantesService {
       solicitantes.reverse();
     }
 
+    return solicitantes
+
+  }
+
+
+  /*---- countAllSolicitantesWithPrismaClient method ------*/
+
+  private async countAllSolicitantesWithPrismaClient(
+    filters: {
+      tipo_identificacion?: TipoIdentificacion;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    }
+  ) {
+
+    // Construimos el objeto de filtrado dinámicamente
+    const where = this.buildWherePrismaClientClause(filters);
+
+    // Obtenemos el total de registros que coinciden con los filtros
+    const totalRecords = await this.prisma.solicitante.count({
+      where
+    });
+
+    return totalRecords;
+
+  }
+
+
+  /*---- countAllSolicitantesWithQueryRaw method ------*/
+
+  private async countAllSolicitantesWithQueryRaw(
+    filters: {
+      tipo_identificacion?: TipoIdentificacion;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    },
+    searchItem?: string
+  ) {
+
+    const conditions = this.buildConditionsQueryRawClause(filters, searchItem);
+
+    // Unimos todas las condiciones con 'AND'
+    const whereClause = conditions.length
+      ? Prisma.join(conditions, ' AND ')
+      : undefined;
+
     // Calculamos el total de registros a obtener
     const toltalRecordsResult = await this.prisma.$queryRaw<{ count: bigint }[]>`
-      SELECT COUNT(*) as count
+      SELECT COUNT(1) as count
       FROM "Solicitante"
       INNER JOIN "PerfilSocioEconomico"
         ON "Solicitante"."id" = "PerfilSocioEconomico"."id_solicitante"
       WHERE ${whereClause}
     `;
     const totalRecords = Number(toltalRecordsResult[0]?.count || 0);
-    
+
+    return totalRecords;
+
+  }
+
+
+  // Util Methods
+
+  private buildWherePrismaClientClause(
+    filters: {
+      tipo_identificacion?: TipoIdentificacion;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    }
+  ) {
+
     return {
-      totalRecords,
-      solicitantes
-    };
+      ...(filters.tipo_identificacion && { tipo_identificacion: filters.tipo_identificacion }),
+      ...(filters.discapacidad && { discapacidad: filters.discapacidad }),
+      ...(filters.vulnerabilidad && { vulnerabilidad: filters.vulnerabilidad }),
+      ...((filters.nivel_estudio || filters.sisben || filters.estrato) && {
+        perfilSocioeconomico: {
+          ...(filters.nivel_estudio && { nivel_estudio: filters.nivel_estudio }),
+          ...(filters.sisben && { sisben: filters.sisben }),
+          ...(filters.estrato && { estrato: filters.estrato })
+        }
+      })
+    }
+
+  }
+
+
+  private buildConditionsQueryRawClause(
+    filters: {
+      tipo_identificacion?: TipoIdentificacion;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    },
+    searchItem?: string
+  ) {
+
+    // Construimos el array de condiciones 
+    const conditions: Prisma.Sql[] = [];
+
+    // Agregamos la condición de búsqueda por texto
+    const searchQuery = searchItem.replace(' ', ' & ') + ':*';
+    conditions.push(Prisma.sql`to_tsvector('spanish', lower("nombre") || ' ' || lower("apellidos")) @@ to_tsquery('spanish', ${searchQuery})`);
+
+    // Añadimos los filtros adicionales si se da el caso
+    if (filters.tipo_identificacion) {
+      conditions.push(
+        Prisma.sql`"Solicitante"."tipo_identificacion" = ${filters.tipo_identificacion}`
+      );
+    }
+
+    if (filters.discapacidad) {
+      conditions.push(
+        Prisma.sql`"Solicitante"."discapacidad" = ${filters.discapacidad}`
+      );
+    }
+
+    if (filters.vulnerabilidad) {
+      conditions.push(
+        Prisma.sql`"Solicitante"."vulnerabilidad" = ${filters.vulnerabilidad}`
+      );
+    }
+
+    // Filtros de la tabla PerfilSocioeconomico
+    if (filters.nivel_estudio) {
+      conditions.push(Prisma.sql`"PerfilSocioEconomico"."nivel_estudio" = ${filters.nivel_estudio}`);
+    }
+
+    if (filters.sisben) {
+      conditions.push(Prisma.sql`"PerfilSocioEconomico"."sisben" = ${filters.sisben}`);
+    }
+
+    if (filters.estrato) {
+      conditions.push(Prisma.sql`"PerfilSocioEconomico"."estrato" = ${filters.estrato}`);
+    }
+
+    return conditions;
 
   }
 

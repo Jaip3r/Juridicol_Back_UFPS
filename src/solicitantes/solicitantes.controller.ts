@@ -132,8 +132,7 @@ export class SolicitantesController {
     const {
       solicitantes,
       nextCursor: nextCursorDate,
-      prevCursor: newPrevCursorDate,
-      totalRecords
+      prevCursor: newPrevCursorDate
     } = await this.solicitantesService.findAllSolicitantes(
       filters,
       order,
@@ -177,7 +176,59 @@ export class SolicitantesController {
       data: formattedSolicitantes,
       nextCursor: nextCursorDate ? nextCursorDate.toISOString() : null, // Devuelve el cursor para la siguiente página
       prevCursor: newPrevCursorDate ? newPrevCursorDate.toISOString() : null, // Devuelve el cursor para la anterior página
-      pageSize: this.PAGE_SIZE,
+      pageSize: this.PAGE_SIZE
+    };
+
+  }
+
+
+  @ApiOperation({ summary: 'Obtener el conteo de solicitantes con filtros aplicados.' })
+  @ApiOkResponse({
+    description: 'Conteo de solicitantes realizado correctamente',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'Conteo de solicitantes realizado correctamente' },
+        totalRecords: { type: 'number', example: 150 },
+      },
+    },
+  })
+  @Get('/count')
+  async countSolicitantes(
+    @Query() query: SolcitanteQueryDto
+  ) {
+
+    // Datos del objeto query
+    const {
+      tipo_identificacion,
+      discapacidad,
+      vulnerabilidad,
+      nivel_estudio,
+      sisben,
+      estrato,
+      searchItem
+    } = query;
+
+    // Filtros a aplicar al conteo
+    const filters = {
+      tipo_identificacion,
+      discapacidad,
+      vulnerabilidad,
+      nivel_estudio,
+      sisben,
+      estrato
+    };
+
+    // Cadena para busqueda basada en texto
+    const formattedSearchItem = searchItem ? searchItem.trim().toLowerCase() : undefined;
+
+    // Obtenemos el conteo
+    const totalRecords = await this.solicitantesService.countAllSolicitantesWithFilters(filters, formattedSearchItem);
+
+    return {
+      status: 200,
+      message: 'Conteo de solicitantes realizado correctamente',
       totalRecords: totalRecords ? totalRecords : 0
     };
 
@@ -337,6 +388,7 @@ export class SolicitantesController {
   @ApiOperation({ summary: 'Actualizar los datos de un solicitante.' })
   @ApiParam({ name: 'id', description: 'ID del solicitante', type: String })
   @ApiNotFoundResponse({ description: 'Solicitante no encontrado' })
+  @ApiBadRequestResponse({ description: 'Error de validación de datos' })
   @ApiOkResponse({
     description: 'Solicitante actualizado correctamente',
     type: GenericApiResponseDto
