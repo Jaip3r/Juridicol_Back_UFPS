@@ -1,4 +1,4 @@
-import { IsBooleanString, IsEnum, IsIn, IsOptional, IsString } from "class-validator";
+import { IsBooleanString, IsEnum, IsIn, IsNumberString, IsOptional, IsString } from "class-validator";
 import { Rol } from "../enum/rol.enum";
 import { AreaDerecho } from "../enum/areaDerecho.enum";
 import { Grupo } from "../enum/grupo.enum";
@@ -47,17 +47,24 @@ export class UsersQueryDto {
     order?: 'asc' | 'desc';
 
     @ApiProperty({
-        description: "Hace referencia a los nuevos datos a obtener en el contexto de paginación"
+        description: "Cursor para paginación hacia adelante"
     })
     @IsOptional()
     @IsString()
     cursor?: string; 
 
     @ApiProperty({
-        description: "Hace referencia a los datos anteriores en el contexto de paginación"
+        description: "Cursor para paginación hacia atrás"
     })
     @IsOptional()
     @IsString()
     prevCursor?: string;
+
+    @ApiProperty({
+        description: "Busqueda de usuario por código",
+    })
+    @IsOptional()
+    @IsNumberString({}, { message: "Favor proporcionar solo el código del usuario" })
+    searchItem?: string;
 
 }
