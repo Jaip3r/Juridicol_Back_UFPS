@@ -275,26 +275,36 @@ export class UsersService {
       (newCodigo !== userExists.codigo || newEmail !== userExists.email)
     ) {
 
-      // Busca si hay otro usuario con el mismo código o correo electrónico
-      const existUserData = await this.prisma.usuario.findFirst({
-        where: {
-          OR: [
-            { email: newEmail },
-            { codigo: newCodigo }
-          ]
-        }
-      });
+      // Si se presenta un nuevo email
+      const emailPromise = newEmail && newEmail !== userExists.email 
+            ? this.prisma.usuario.findFirst({
+                where: {
+                    email: newEmail,
+                    id: { not: id } // Excluimos al usuario actual
+                }
+            }) 
+            : Promise.resolve(null);
+      
+      // Si se presenta un nuevo código
+      const codigoPromise = newCodigo && newCodigo !== userExists.codigo
+            ? this.prisma.usuario.findFirst({
+              where: {
+                codigo: newCodigo,
+                id: { not: id } // Excluimos al usuario actual
+              }
+            })
+            : Promise.resolve(null);
+        
+      // Ejecutamos las promesas en paralelo
+      const [ existUserByEmail, existUserByCodigo ] = await Promise.all([emailPromise, codigoPromise]);
 
-      if (existUserData) {
+      // Verificamos si las consultas devolvieron resultados y lanzamos excepciones en consecuencia
+      if (existUserByEmail) {
+        throw new BadRequestException('El correo electrónico ya está en uso por otro usuario.');
+      }
 
-        if (existUserData.email === newEmail) {
-          throw new BadRequestException('El correo electrónico ya está en uso por otro usuario.');
-        }
-
-        if (existUserData.codigo === newCodigo) {
+      if (existUserByCodigo) {
           throw new BadRequestException('El código ya está en uso por otro usuario.');
-        }
-
       }
 
     }
@@ -368,7 +378,27 @@ export class UsersService {
 
   async enableUser(id: number) {
 
-    await this.findOneUser(id);
+    const user = await this.findOneUser(id);
+
+    if (user.rol === 'profesor') {
+
+      const profesoresGrupoYArea = await this.prisma.usuario.count({
+        where: {
+          id: { not: id }, // Excluimos el usuario actual
+          rol: Rol.PROFESOR,
+          activo: true,
+          area_derecho: user.area_derecho,
+          grupo: user.grupo
+        }
+      });
+
+      if (profesoresGrupoYArea >= 1) {
+        throw new BadRequestException(
+          `Ya existe un profesor activo en el grupo ${user.grupo} para el área de ${user.area_derecho}`
+        );
+      }
+
+    }
 
     // Habilitamos el acceso al sistema al usuario
     return this.prisma.usuario.update({
