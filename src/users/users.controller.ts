@@ -177,7 +177,8 @@ export class UsersController {
       rol,
       area_derecho,
       grupo,
-      activo
+      activo,
+      order
     } = query;
 
     // Filtros a aplicar a la consulta
@@ -189,7 +190,7 @@ export class UsersController {
     };
 
     // Obtenemos los datos para realizar el reporte 
-    const infoReport = await this.usersService.getInfoUsersReport(filters);
+    const infoReport = await this.usersService.getInfoUsersReport(filters, order);
 
     // Formateamos los datos con los nombres de columnas personalizadas
     const data = infoReport.map((usuario) => ({
@@ -202,7 +203,7 @@ export class UsersController {
       'Rol': usuario.rol,
       'Area de derecho': usuario.area_derecho,
       'Grupo': usuario.grupo,
-      'Fecha de registro': usuario.fecha_registro,
+      'Fecha de registro': format(new TZDate(usuario.fecha_registro, this.TIME_ZONE), this.DATE_FORMAT),
       'Activo': usuario.activo
 
     }));
@@ -211,14 +212,14 @@ export class UsersController {
     const columnWidths = [
       { wch: 30 }, // Nombres
       { wch: 30 }, // Apellidos
-      { wch: 25 }, // Celular
-      { wch: 25 }, // Email
+      { wch: 15 }, // Celular
+      { wch: 35 }, // Email
       { wch: 12 }, // Codigo
-      { wch: 25 }, // Rol
-      { wch: 35 }, // Area de derecho
-      { wch: 15 }, // Grupo 
+      { wch: 15 }, // Rol
+      { wch: 15 }, // Area de derecho
+      { wch: 10 }, // Grupo 
       { wch: 25 }, // Fecha de registro
-      { wch: 35 } // Activo
+      { wch: 15 } // Activo
     ];
 
     // Generamos el archivo

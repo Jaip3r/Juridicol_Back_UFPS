@@ -170,7 +170,8 @@ export class UsersService {
       area_derecho?: AreaDerecho;
       grupo?: Grupo;
       activo?: boolean;
-    }
+    },
+    order: 'asc' | 'desc' = 'asc'
   ) {
 
     // Creamos el objeto where con los filtros proporcionados
@@ -190,7 +191,10 @@ export class UsersService {
         grupo: true,
         fecha_registro: true,
         activo: true
-      }
+      },
+      orderBy: [
+        { fecha_registro: order }
+      ]
     });
 
   }
