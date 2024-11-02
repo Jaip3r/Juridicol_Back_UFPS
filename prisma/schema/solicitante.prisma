@@ -10,6 +10,7 @@ model Solicitante {
   lugar_nacimiento String
   discapacidad String
   vulnerabilidad String
+  ciudad String
   direccion_actual String
   email String?
   numero_contacto String
@@ -28,11 +29,9 @@ model PerfilSocioEconomico {
   nivel_estudio String
   estrato String
   sisben String
+  actividad_economica String
   oficio String
   nivel_ingreso_economico String
-  departamento String
-  ciudad String
-  barrio String
   solicitante Solicitante @relation(fields: [id_solicitante], references: [id], onDelete: Cascade, onUpdate: Restrict)
   id_solicitante Int @unique
 
