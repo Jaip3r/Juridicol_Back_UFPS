@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { MailModule } from './mail/mail.module';
 import { SolicitantesModule } from './solicitantes/solicitantes.module';
+import { ConsultasModule } from './consultas/consultas.module';
 import config from './config/configuration';
 
 @Module({
@@ -70,6 +71,7 @@ import config from './config/configuration';
     AuthModule,
     MailModule,
     SolicitantesModule,
+    ConsultasModule,
   ],
   controllers: [],
   providers: [
