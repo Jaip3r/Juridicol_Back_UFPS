@@ -7,16 +7,24 @@ model Consulta {
   hechos String
   pretensiones String
   observaciones String
+  nombre_accionante String
+  telefono_accionante String 
+  email_accionante String
+  direccion_accionante String
+  nombre_accionado String
+  telefono_accionado String? 
+  email_accionado String?
+  direccion_accionado String?
   estado Estado @default(pendiente)
   fecha_registro DateTime @default(now())
   fecha_asignacion DateTime?
-  solicitante Solicitante @relation(fields: [id_solicitente], references: [id], onDelete: Restrict)
-  id_solicitente Int
+  fecha_finalizacion DateTime?
+  solicitante Solicitante @relation(fields: [id_solicitante], references: [id], onDelete: Restrict)
+  id_solicitante Int
   estudiante_registro Usuario @relation("Registro", fields: [id_estudiante_registro], references: [id], onDelete: Restrict)
   id_estudiante_registro Int
   estudiante_asignado Usuario? @relation("Asignacion", fields: [id_estudiante_asignado], references: [id], onDelete: Restrict)
   id_estudiante_asignado Int?
-  involucrados Consulta_involucrados[]
   archivos Archivo[]
 
 }
@@ -25,40 +33,14 @@ model Archivo {
 
   id Int @id @default(autoincrement())
   nombre String
-  ruta String
-  tipo TipoArchivo
+  url String
+  tipo String
   fecha_carga DateTime @default(now())
   fecha_actualizacion DateTime @updatedAt
   consulta Consulta @relation(fields: [id_consulta], references: [id])
   id_consulta Int
 
 }
-
-model Persona_involucrada {
-
-  id Int @id @default(autoincrement())
-  nombre String
-  telefono String 
-  correo String @unique
-  direccion String
-  fecha_registro DateTime @default(now())
-  fecha_actualizacion DateTime @updatedAt
-  consultas Consulta_involucrados[]
-
-}
-
-model Consulta_involucrados {
-
-  consulta Consulta @relation(fields: [id_consulta], references: [id], onDelete: Restrict)
-  id_consulta Int
-  involucrado Persona_involucrada @relation(fields: [id_involucrado], references: [id], onDelete: Restrict)
-  id_involucrado Int
-  tipo TipoInvolucrado
-
-  @@id([id_consulta, id_involucrado])
-
-}
-
 
 // Enums
 
@@ -69,16 +51,6 @@ enum TipoConsulta {
 
 enum Estado {
   pendiente
-  asignado
-  cerrado
-}
-
-enum TipoInvolucrado {
-  Accionante
-  Accionado
-}
-
-enum TipoArchivo {
-  PDF
-  Imagen
+  asignada
+  finalizada
 }
