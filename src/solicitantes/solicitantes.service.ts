@@ -59,6 +59,7 @@ export class SolicitantesService {
         lugar_nacimiento: data.lugar_nacimiento,
         discapacidad: data.discapacidad,
         vulnerabilidad: data.vulnerabilidad,
+        ciudad: data.ciudad,
         direccion_actual: data.direccion_actual,
         email: data.email,
         numero_contacto: data.numero_contacto,
@@ -67,11 +68,9 @@ export class SolicitantesService {
             nivel_estudio: data.nivel_estudio,
             estrato: data.estrato,
             sisben: data.sisben,
+            actividad_economica: data.actividad_economica,
             oficio: data.oficio,
-            nivel_ingreso_economico: data.nivel_ingreso_economico,
-            departamento: data.departamento,
-            ciudad: data.ciudad,
-            barrio: data.barrio
+            nivel_ingreso_economico: data.nivel_ingreso_economico
           }
         }
       }
@@ -196,6 +195,7 @@ export class SolicitantesService {
         lugar_nacimiento: true,
         discapacidad: true,
         vulnerabilidad: true,
+        ciudad: true,
         direccion_actual: true,
         email: true,
         numero_contacto: true,
@@ -205,11 +205,9 @@ export class SolicitantesService {
             nivel_estudio: true,
             estrato: true,
             sisben: true,
+            actividad_economica: true,
             oficio: true,
-            nivel_ingreso_economico: true,
-            departamento: true,
-            ciudad: true,
-            barrio: true
+            nivel_ingreso_economico: true
           }
         }
       }
@@ -238,6 +236,7 @@ export class SolicitantesService {
         lugar_nacimiento: true,
         discapacidad: true,
         vulnerabilidad: true,
+        ciudad: true,
         direccion_actual: true,
         email: true,
         numero_contacto: true,
@@ -246,11 +245,9 @@ export class SolicitantesService {
             nivel_estudio: true,
             estrato: true,
             sisben: true,
+            actividad_economica: true,
             oficio: true,
-            nivel_ingreso_economico: true,
-            departamento: true,
-            ciudad: true,
-            barrio: true
+            nivel_ingreso_economico: true
           }
         }
       }
@@ -310,11 +307,9 @@ export class SolicitantesService {
     if (data.nivel_estudio) perfilSocioeconomicoData.nivel_estudio = data.nivel_estudio;
     if (data.estrato) perfilSocioeconomicoData.estrato = data.estrato;
     if (data.sisben) perfilSocioeconomicoData.sisben = data.sisben;
+    if (data.actividad_economica) perfilSocioeconomicoData.actividad_economica = data.actividad_economica;
     if (data.oficio) perfilSocioeconomicoData.oficio = data.oficio;
     if (data.nivel_ingreso_economico) perfilSocioeconomicoData.nivel_ingreso_economico = data.nivel_ingreso_economico;
-    if (data.departamento) perfilSocioeconomicoData.departamento = data.departamento;
-    if (data.ciudad) perfilSocioeconomicoData.ciudad = data.ciudad;
-    if (data.barrio) perfilSocioeconomicoData.barrio = data.barrio;
 
     // Actualizamos al solicitante junto con su perfil socioeconómico
     return this.prisma.solicitante.update({
@@ -329,8 +324,9 @@ export class SolicitantesService {
         lugar_nacimiento: data.lugar_nacimiento,
         discapacidad: data.discapacidad,
         vulnerabilidad: data.vulnerabilidad,
+        ciudad: data.ciudad,
         direccion_actual: data.direccion_actual,
-        email: data.email,
+        email: data.email === undefined ? null : data.email,
         numero_contacto: data.numero_contacto,
         perfilSocioeconomico: {
           update: perfilSocioeconomicoData

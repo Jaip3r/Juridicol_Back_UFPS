@@ -289,6 +289,7 @@ export class SolicitantesController {
       'Lugar de Nacimiento': solicitante.lugar_nacimiento,
       'Discapacidad': solicitante.discapacidad,
       'Vulnerabilidad': solicitante.vulnerabilidad,
+      'Ciudad': solicitante.ciudad,
       'Dirección Actual': solicitante.direccion_actual,
       'Correo Electrónico': solicitante.email,
       'Número de Contacto': solicitante.numero_contacto,
@@ -296,11 +297,9 @@ export class SolicitantesController {
       'Nivel de Estudio': solicitante.perfilSocioeconomico.nivel_estudio,
       'Estrato': solicitante.perfilSocioeconomico.estrato,
       'Sisben': solicitante.perfilSocioeconomico.sisben,
+      'Actividad económica': solicitante.perfilSocioeconomico.actividad_economica,
       'Oficio': solicitante.perfilSocioeconomico.oficio,
       'Nivel de Igreso Económico': solicitante.perfilSocioeconomico.nivel_ingreso_economico,
-      'Departamento': solicitante.perfilSocioeconomico.departamento,
-      'Ciudad': solicitante.perfilSocioeconomico.ciudad,
-      'Barrio': solicitante.perfilSocioeconomico.barrio
 
     }));
 
@@ -315,6 +314,7 @@ export class SolicitantesController {
       { wch: 35 }, // Lugar de Nacimiento
       { wch: 15 }, // Discapacidad
       { wch: 25 }, // Vulnerabilidad
+      { wch: 25 }, // Ciudad
       { wch: 35 }, // Dirección Actual
       { wch: 30 }, // Correo Electrónico
       { wch: 25 }, // Número de Contacto
@@ -322,6 +322,7 @@ export class SolicitantesController {
       { wch: 15 }, // Nivel de Estudio
       { wch: 10 }, // Estrato
       { wch: 15 }, // Sisben
+      { wch: 35 }, // Actividad económica
       { wch: 35 }, // Oficio
       { wch: 30 }, // Nivel de Igreso Económico
       { wch: 30 }, // Departamento

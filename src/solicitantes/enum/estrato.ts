@@ -1,4 +1,5 @@
 export enum Estrato {
+    ESTRATO_0 = 'Estrato 0',
     ESTRATO_1 = 'Estrato 1',
     ESTRATO_2 = 'Estrato 2',
     ESTRATO_3 = 'Estrato 3',

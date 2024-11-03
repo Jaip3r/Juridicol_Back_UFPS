@@ -58,6 +58,12 @@ export class SolicitanteDto {
     vulnerabilidad: string;
 
     @ApiProperty({
+        description: 'Ciudad de residencia del solicitante',
+        example: 'Bogotá'
+    })
+    ciudad: string;
+
+    @ApiProperty({
         description: 'Dirección actual del solicitante',
         example: 'Universidad Francisco de Paula Santander'
     })
@@ -94,6 +100,12 @@ export class SolicitanteDto {
     sisben: string;
 
     @ApiProperty({
+        description: 'Actividad económica del solicitante',
+        example: 'Actividades profesionales, científicas y técnicas'
+    })
+    actividad_economica: string;
+
+    @ApiProperty({
         description: 'Oficio del solicitante',
         example: 'Ganadero el vago'
     })
@@ -104,23 +116,5 @@ export class SolicitanteDto {
         example: 'Superior a 6 SMMV'
     })
     nivel_ingreso_economico: string;
-
-    @ApiProperty({
-        description: 'Departamento de residencia del solicitante',
-        example: 'Cundinamarca'
-    })
-    departamento: string;
-
-    @ApiProperty({
-        description: 'Ciudad de residencia del solicitante',
-        example: 'Bogotá'
-    })
-    ciudad: string;
-
-    @ApiProperty({
-        description: 'Barrio o localidad de residencia del solicitante',
-        example: 'Ciudad Bolivar'
-    })
-    barrio: string;
 
 }

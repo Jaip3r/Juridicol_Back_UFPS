@@ -14,7 +14,7 @@ export class RegisterDto {
     @IsNotEmpty({ message: "El nombre(s) del usuario es requerido." })
     @IsString()
     @MinLength(3, { message: "El nombre(s) del usuario debe contener mínimo 3 carácteres." })
-    @MaxLength(25, { message: "El nombre(s) del usuario ha de contener máximo 25 carácteres." })
+    @MaxLength(45, { message: "El nombre(s) del usuario ha de contener máximo 45 carácteres." })
     nombres:  string;
 
     @ApiProperty({
@@ -24,7 +24,7 @@ export class RegisterDto {
     @IsNotEmpty({ message: "El apellido(s) del usuario es requerido." })
     @IsString()
     @MinLength(3, { message: "El apellido(s) del usuario debe contener mínimo 3 carácteres." })
-    @MaxLength(25, { message: "El apellido(s) del usuario debe contener máximo 25 carácteres." })
+    @MaxLength(55, { message: "El apellido(s) del usuario debe contener máximo 55 carácteres." })
     apellidos: string;
 
     @ApiProperty({

@@ -8,6 +8,8 @@ import { Sisben } from "../enum/sisben";
 import { TipoIdentificacion } from "../enum/tipoIdentificacion";
 import { Vulnerabilidad } from "../enum/vulnerabilidad";
 import { ApiProperty } from "@nestjs/swagger";
+import { ActividadEconomica } from "../enum/actividadEconomica";
+import { Transform } from "class-transformer";
 
 
 export class CreateSolicitanteDto {
@@ -19,7 +21,7 @@ export class CreateSolicitanteDto {
     @IsNotEmpty({ message: 'El nombre del solicitante es requerido.' })
     @IsString()
     @MinLength(3, { message: 'El nombre del solicitante debe contener mínimo 3 carácteres.' })
-    @MaxLength(30, { message: 'El nombre del solicitante ha de contener máximo 30 carácteres.' })
+    @MaxLength(60, { message: 'El nombre del solicitante ha de contener máximo 60 carácteres.' })
     nombre: string;
 
     @ApiProperty({
@@ -29,8 +31,15 @@ export class CreateSolicitanteDto {
     @IsNotEmpty({ message: 'El apellido(s) del solicitante es requerido.' })
     @IsString()
     @MinLength(3, { message: 'El apellido(s) del solicitante debe contener mínimo 3 carácteres.' })
-    @MaxLength(35, { message: 'El apellido(s) del solicitante ha de contener máximo 35 carácteres.' })
+    @MaxLength(65, { message: 'El apellido(s) del solicitante ha de contener máximo 65 carácteres.' })
     apellidos: string;
+
+    @ApiProperty({
+        description: 'Genero del solicitante',
+        example: 'Masculino'
+    })
+    @IsEnum(Genero, { message: 'Género no válido.' })
+    genero: Genero;
 
     @ApiProperty({
         description: 'Tipo de identificación del solicitante',
@@ -48,13 +57,6 @@ export class CreateSolicitanteDto {
     @MinLength(8, { message: 'El número de identificación debe contener entre 8 a 15 digitos' })
     @MaxLength(15, { message: 'El número de identificación debe contener entre 8 a 15 digitos.' })
     numero_identificacion: string;
-    
-    @ApiProperty({
-        description: 'Genero del solicitante',
-        example: 'Masculino'
-    })
-    @IsEnum(Genero, { message: 'Género no válido.' })
-    genero: Genero;
 
     @ApiProperty({
         description: 'Fecha de nacimiento del solicitante',
@@ -64,14 +66,13 @@ export class CreateSolicitanteDto {
     fecha_nacimiento: string;
 
     @ApiProperty({
-        description: 'Lugar de nacimiento del solicitante',
-        example: 'Bochalema'
+        description: 'Celular del solicitante',
+        example: "3145673452"
     })
-    @IsNotEmpty({ message: 'El lugar de nacimiento es requerido.' })
-    @IsString()
-    @MinLength(3, { message: 'El lugar de nacimiento debe contener minimo 3 carácteres' })
-    @MaxLength(35, { message: 'El lugar de nacimiento no debe sobrepasar los 35 carácteres' })
-    lugar_nacimiento: string;
+    @IsNotEmpty({ message: 'El número de contacto es requerido.' })
+    @IsNumberString({}, { message: 'El número de contacto debe contener solo números.' })
+    @IsPhoneNumber('CO', { message: 'Número de contacto no válido.' })
+    numero_contacto: string;
     
     @ApiProperty({
         description: 'Discapacidad del solicitante',
@@ -88,32 +89,44 @@ export class CreateSolicitanteDto {
     vulnerabilidad: Vulnerabilidad;
 
     @ApiProperty({
+        description: 'Correo del solicitante',
+        example: 'juanhernan@gmail.com'
+    })
+    @Transform(({ value }) => (value === '' ? undefined : value))
+    @IsEmail({}, { message: 'Correo electrónico no válido.' })
+    @IsOptional()
+    @MaxLength(50, { message: 'El correo electrónico no debe sobrepasar los 50 carácteres' })
+    email?: string;
+
+    @ApiProperty({
+        description: 'Lugar de nacimiento del solicitante',
+        example: 'Bochalema'
+    })
+    @IsNotEmpty({ message: 'El lugar de nacimiento es requerido.' })
+    @IsString()
+    @MinLength(3, { message: 'El lugar de nacimiento debe contener minimo 3 carácteres' })
+    @MaxLength(65, { message: 'El lugar de nacimiento no debe sobrepasar los 65 carácteres' })
+    lugar_nacimiento: string;
+
+    @ApiProperty({
+        description: 'Ciudad de residencia del solicitante',
+        example: 'Bogotá'
+    })
+    @IsNotEmpty({ message: 'La ciudad es requerida.' })
+    @IsString()
+    @MinLength(5, { message: 'La ciudad de residencia debe contener minimo 5 carácteres' })
+    @MaxLength(45, { message: 'La ciudad de residencia no debe sobrepasar los 45 carácteres' })
+    ciudad: string;
+
+    @ApiProperty({
         description: 'Dirección actual del solicitante',
         example: 'Universidad Francisco de Paula Santander'
     })
     @IsNotEmpty({ message: 'La dirección actual es requerida.' })
     @IsString()
     @MinLength(5, { message: 'La dirección actual debe contener minimo 5 carácteres' })
-    @MaxLength(55, { message: 'La dirección actual no debe sobrepasar los 55 carácteres' })
+    @MaxLength(65, { message: 'La dirección actual no debe sobrepasar los 65 carácteres' })
     direccion_actual: string;
-
-    @ApiProperty({
-        description: 'Correo del solicitante',
-        example: 'juanhernan@gmail.com'
-    })
-    @IsEmail({}, { message: 'Correo electrónico no válido.' })
-    @IsOptional()
-    @MaxLength(45, { message: 'El correo electrónico no debe sobrepasar los 45 carácteres' })
-    email?: string;
-
-    @ApiProperty({
-        description: 'Celular del solicitante',
-        example: "3145673452"
-    })
-    @IsNotEmpty({ message: 'El número de contacto es requerido.' })
-    @IsNumberString({}, { message: 'El número de contacto debe contener solo números.' })
-    @IsPhoneNumber('CO', { message: 'Número de contacto no válido.' })
-    numero_contacto: string;
 
     @ApiProperty({
         description: 'Nivel de estudio del solicitante',
@@ -137,16 +150,6 @@ export class CreateSolicitanteDto {
     sisben: Sisben;
 
     @ApiProperty({
-        description: 'Oficio del solicitante',
-        example: 'Ganadero el vago'
-    })
-    @IsNotEmpty({ message: 'El oficio es requerido.' })
-    @IsString()
-    @MinLength(5, { message: 'El oficio debe contener minimo 5 carácteres' })
-    @MaxLength(35, { message: 'El oficio no debe sobrepasar los 35 carácteres' })
-    oficio: string;
-
-    @ApiProperty({
         description: 'Nivel de ingreso económico del solicitante',
         example: 'Superior a 6 SMMV'
     })
@@ -154,33 +157,20 @@ export class CreateSolicitanteDto {
     nivel_ingreso_economico: NivelIngresoEconomico;
 
     @ApiProperty({
-        description: 'Departamento de residencia del solicitante',
-        example: 'Cundinamarca'
+        description: 'Actividad económica del solicitante',
+        example: 'Actividades profesionales, científicas y técnicas'
     })
-    @IsNotEmpty({ message: 'El departamento es requerido.' })
-    @IsString()
-    @MinLength(5, { message: 'El departamento de residencia debe contener minimo 5 carácteres' })
-    @MaxLength(35, { message: 'El departamento de residencia no debe sobrepasar los 35 carácteres' })
-    departamento: string;
+    @IsEnum(ActividadEconomica, { message: 'Actividad económica no válida' })
+    actividad_economica: ActividadEconomica;
 
     @ApiProperty({
-        description: 'Ciudad de residencia del solicitante',
-        example: 'Bogotá'
+        description: 'Oficio del solicitante',
+        example: 'Ganadero el vago'
     })
-    @IsNotEmpty({ message: 'La ciudad es requerida.' })
+    @IsNotEmpty({ message: 'El oficio es requerido.' })
     @IsString()
-    @MinLength(5, { message: 'La ciudad de residencia debe contener minimo 5 carácteres' })
-    @MaxLength(35, { message: 'La ciudad de residencia no debe sobrepasar los 35 carácteres' })
-    ciudad: string;
-
-    @ApiProperty({
-        description: 'Barrio o localidad de residencia del solicitante',
-        example: 'Ciudad Bolivar'
-    })
-    @IsNotEmpty({ message: 'El barrio es requerido.' })
-    @IsString()
-    @MinLength(5, { message: 'El barrio de residencia debe contener minimo 5 carácteres' })
-    @MaxLength(35, { message: 'El barrio de residencia no debe sobrepasar los 35 carácteres' })
-    barrio: string;
+    @MinLength(5, { message: 'El oficio debe contener minimo 5 carácteres' })
+    @MaxLength(55, { message: 'El oficio no debe sobrepasar los 55 carácteres' })
+    oficio: string;
 
 }
