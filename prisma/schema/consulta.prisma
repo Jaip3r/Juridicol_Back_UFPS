@@ -29,6 +29,17 @@ model Consulta {
 
 }
 
+model RadicadoCounter {
+
+  id           Int          @id @default(autoincrement())
+  area_derecho AreaDerecho
+  semestre     String       
+  contador     Int          @default(0)
+
+  @@unique([area_derecho, semestre], name: "area_semestre_unique")
+
+}
+
 model Archivo {
 
   id Int @id @default(autoincrement())
