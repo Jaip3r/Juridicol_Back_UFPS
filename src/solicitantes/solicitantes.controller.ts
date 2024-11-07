@@ -2,22 +2,22 @@ import { Controller, Get, Post, Body, Patch, Param, Logger, Query, Res } from '@
 import { SolicitantesService } from './solicitantes.service';
 import { CreateSolicitanteDto } from './dto/create-solicitante.dto';
 import { UpdateSolicitanteDto } from './dto/update-solicitante.dto';
-import { Authorization } from 'src/auth/decorators/auth.decorator';
-import { Rol } from 'src/users/enum/rol.enum';
-import { ActorUser } from 'src/common/decorators/actor-user.decorator';
-import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
+import { Authorization } from '../auth/decorators/auth.decorator';
+import { Rol } from '../users/enum/rol.enum';
+import { ActorUser } from '../common/decorators/actor-user.decorator';
+import { ActorUserInterface } from '../common/interfaces/actor-user.interface';
 import { SolcitanteQueryDto } from './dto/solicitante-query.dto';
-import { validateIdParamDto } from 'src/common/dto/validate-idParam.dto';
+import { validateIdParamDto } from '../common/dto/validate-idParam.dto';
 import { format } from 'date-fns';
 import { TZDate } from '@date-fns/tz';
 import { UTCDate } from '@date-fns/utc';
 import { Response } from 'express';
-import { generateExcelReport } from 'src/common/utils/generateExcelReport';
+import { generateExcelReport } from '../common/utils/generateExcelReport';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { SolicitantePaginateResponseDto } from './dto/response/solicitante-paginate-reponse.dto';
 import { SolicitanteResponseDto } from './dto/response/solicitante-response.dto';
-import { CreateApiResponseDto } from 'src/common/dto/create-api-response.dto';
-import { GenericApiResponseDto } from 'src/common/dto/generic-api-response.dto';
+import { CreateApiResponseDto } from '../common/dto/create-api-response.dto';
+import { GenericApiResponseDto } from '../common/dto/generic-api-response.dto';
 
 
 @ApiTags('solicitantes')

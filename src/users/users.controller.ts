@@ -1,20 +1,20 @@
 import { Controller, Get, Body, Patch, Param, Logger, Query, Res } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { validateIdParamDto } from 'src/common/dto/validate-idParam.dto';
-import { ActorUser } from 'src/common/decorators/actor-user.decorator';
-import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
-import { Authorization } from 'src/auth/decorators/auth.decorator';
+import { validateIdParamDto } from '../common/dto/validate-idParam.dto';
+import { ActorUser } from '../common/decorators/actor-user.decorator';
+import { ActorUserInterface } from '../common/interfaces/actor-user.interface';
+import { Authorization } from '../auth/decorators/auth.decorator';
 import { Rol } from './enum/rol.enum';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { UsersQueryDto } from './dto/user-query.dto';
 import { format } from 'date-fns';
 import { TZDate } from "@date-fns/tz";
 import { Response } from 'express';
-import { generateExcelReport } from 'src/common/utils/generateExcelReport';
+import { generateExcelReport } from '../common/utils/generateExcelReport';
 import { UserPaginateResponseDto } from './dto/response/user-paginate-response.dto';
 import { UserResponseDto } from './dto/response/user-response.dto';
-import { GenericApiResponseDto } from 'src/common/dto/generic-api-response.dto';
+import { GenericApiResponseDto } from '../common/dto/generic-api-response.dto';
 
 
 @ApiTags('users')

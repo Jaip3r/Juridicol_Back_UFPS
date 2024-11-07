@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { Rol } from './enum/rol.enum';
 import { AreaDerecho } from './enum/areaDerecho.enum';
 import { Grupo } from './enum/grupo.enum';
 import { UserDto } from './dto/user.dto';
-import { buildWherePrismaClientClause } from 'src/common/utils/buildPrismaClientWhereClause';
+import { buildWherePrismaClientClause } from '../common/utils/buildPrismaClientWhereClause';
 
 
 @Injectable()

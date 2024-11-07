@@ -1,4 +1,4 @@
-import { IsDateString, IsEmail, IsEnum, IsNotEmpty, IsNumberString, IsOptional, IsPhoneNumber, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import { IsDateString, IsEmail, IsEnum, IsNotEmpty, IsNumberString, IsOptional, IsPhoneNumber, IsString, Matches, MaxLength, MinLength, ValidateIf } from "class-validator";
 import { Discapacidad } from "../enum/discapacidad";
 import { Estrato } from "../enum/estrato";
 import { Genero } from "../enum/genero";
@@ -10,6 +10,7 @@ import { Vulnerabilidad } from "../enum/vulnerabilidad";
 import { ApiProperty } from "@nestjs/swagger";
 import { ActividadEconomica } from "../enum/actividadEconomica";
 import { Transform } from "class-transformer";
+import { IsIdentificacionValida } from "src/common/validation/IsIdentificacionValida";
 
 
 export class CreateSolicitanteDto {
@@ -52,10 +53,7 @@ export class CreateSolicitanteDto {
         description: 'Número de identificación del solicitante',
         example: '13436742'
     })
-    @IsNotEmpty({ message: 'El número de identificación es requerido' })
-    @IsNumberString({}, { message: 'El número de identificación debe contener solo dígitos.' })
-    @MinLength(8, { message: 'El número de identificación debe contener entre 8 a 15 digitos' })
-    @MaxLength(15, { message: 'El número de identificación debe contener entre 8 a 15 digitos.' })
+    @IsIdentificacionValida({ message: 'Número de identificación no válido para el tipo de identificación especificado.' })
     numero_identificacion: string;
 
     @ApiProperty({

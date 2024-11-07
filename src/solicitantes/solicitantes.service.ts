@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateSolicitanteDto } from './dto/update-solicitante.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateSolicitanteDto } from './dto/create-solicitante.dto';
 import { TipoIdentificacion } from './enum/tipoIdentificacion';
 import { Discapacidad } from './enum/discapacidad';
@@ -9,13 +9,81 @@ import { NivelEstudio } from './enum/nivelEstudio';
 import { Sisben } from './enum/sisben';
 import { Estrato } from './enum/estrato';
 import { Prisma } from '@prisma/client';
-import { buildWherePrismaClientClause } from 'src/common/utils/buildPrismaClientWhereClause';
+import { buildWherePrismaClientClause } from '../common/utils/buildPrismaClientWhereClause';
 
 
 @Injectable()
 export class SolicitantesService {
 
   constructor(private readonly prisma: PrismaService) {}
+
+
+  /*---- findOrCreateSolicitante method ------*/
+
+  async findOrCreateSolicitante(
+    data: CreateSolicitanteDto,
+    prisma?: Prisma.TransactionClient,
+  ) {
+
+    const db = prisma || this.prisma;
+
+    // Intentamos ubicar al solicitante por su número de identificación
+    let solicitante = await db.solicitante.findUnique({
+      where: { numero_identificacion: data.numero_identificacion },
+    });
+
+    // Verificación del correo (si se proporciona)
+    if ((solicitante && data.email && data.email !== solicitante.email) || (!solicitante && data.email)) {
+
+      const emailCount = await db.solicitante.count({
+        where: { email: data.email },
+      });
+
+      if (emailCount >= 2) {
+        throw new BadRequestException(
+          'Ya hay demasiadas personas compartiendo el mismo correo',
+        );
+      }
+
+    }
+
+    // Datos para la creación o actualización del perfilsocioeconómico
+    const perfilSocioeconomicoData = this.construirDatosPerfilSocioeconomico(data);
+
+    // Datos para la creación o actualización del solicitante
+    const solicitanteData = this.construirDatosSolicitante(data);
+
+    // Si el solicitante ya existe, actualizamos su información 
+    if (solicitante) {
+
+      solicitante = await db.solicitante.update({
+        where: { id: solicitante.id },
+        data: {
+          ...solicitanteData,
+          perfilSocioeconomico: {
+            update: perfilSocioeconomicoData
+          }
+        }
+      });
+
+    } else {
+
+      // Caso contrario, registramos al nuevo solicitante
+      solicitante = await  db.solicitante.create({
+        data: {
+          ...solicitanteData,
+          perfilSocioeconomico: {
+            create: perfilSocioeconomicoData
+          }
+        }
+      });
+
+    }
+
+    return solicitante;
+
+  }
+
 
   /*---- createSolicitante method ------*/
 
@@ -47,31 +115,16 @@ export class SolicitantesService {
 
     }
 
+    // Datos para la creación del registro
+    const solicitanteData = this.construirDatosSolicitante(data);
+    const perfilSocioeconomicoData = this.construirDatosPerfilSocioeconomico(data);
+
     // Registramos el solicitante a partir de la data recibida
     return this.prisma.solicitante.create({
       data: {
-        nombre: data.nombre,
-        apellidos: data.apellidos,
-        tipo_identificacion: data.tipo_identificacion,
-        numero_identificacion: data.numero_identificacion,
-        genero: data.genero,
-        fecha_nacimiento: new Date(data.fecha_nacimiento),
-        lugar_nacimiento: data.lugar_nacimiento,
-        discapacidad: data.discapacidad,
-        vulnerabilidad: data.vulnerabilidad,
-        ciudad: data.ciudad,
-        direccion_actual: data.direccion_actual,
-        email: data.email,
-        numero_contacto: data.numero_contacto,
+        ...solicitanteData,
         perfilSocioeconomico: {
-          create: {
-            nivel_estudio: data.nivel_estudio,
-            estrato: data.estrato,
-            sisben: data.sisben,
-            actividad_economica: data.actividad_economica,
-            oficio: data.oficio,
-            nivel_ingreso_economico: data.nivel_ingreso_economico
-          }
+          create: perfilSocioeconomicoData
         }
       }
     });
@@ -303,31 +356,14 @@ export class SolicitantesService {
     }
 
     // Preparar los datos para actualizar el perfil socioeconómico
-    const perfilSocioeconomicoData: Prisma.PerfilSocioEconomicoUpdateInput = {};
-    if (data.nivel_estudio) perfilSocioeconomicoData.nivel_estudio = data.nivel_estudio;
-    if (data.estrato) perfilSocioeconomicoData.estrato = data.estrato;
-    if (data.sisben) perfilSocioeconomicoData.sisben = data.sisben;
-    if (data.actividad_economica) perfilSocioeconomicoData.actividad_economica = data.actividad_economica;
-    if (data.oficio) perfilSocioeconomicoData.oficio = data.oficio;
-    if (data.nivel_ingreso_economico) perfilSocioeconomicoData.nivel_ingreso_economico = data.nivel_ingreso_economico;
+    const solicitanteData = this.construirDatosSolicitante(data);
+    const perfilSocioeconomicoData: Prisma.PerfilSocioEconomicoUpdateInput = this.construirDatosPerfilSocioeconomico(data);
 
     // Actualizamos al solicitante junto con su perfil socioeconómico
     return this.prisma.solicitante.update({
       where: { id },
       data: {
-        nombre: data.nombre,
-        apellidos: data.apellidos,
-        tipo_identificacion: data.tipo_identificacion,
-        numero_identificacion: data.numero_identificacion,
-        genero: data.genero,
-        fecha_nacimiento: data.fecha_nacimiento ? new Date(data.fecha_nacimiento) : undefined,
-        lugar_nacimiento: data.lugar_nacimiento,
-        discapacidad: data.discapacidad,
-        vulnerabilidad: data.vulnerabilidad,
-        ciudad: data.ciudad,
-        direccion_actual: data.direccion_actual,
-        email: data.email === undefined ? null : data.email,
-        numero_contacto: data.numero_contacto,
+        ...solicitanteData,
         perfilSocioeconomico: {
           update: perfilSocioeconomicoData
         }
@@ -577,6 +613,37 @@ export class SolicitantesService {
 
 
   // Util Methods
+
+  private construirDatosSolicitante(data: CreateSolicitanteDto | UpdateSolicitanteDto) {
+
+    return {
+      nombre: data.nombre,
+      apellidos: data.apellidos,
+      tipo_identificacion: data.tipo_identificacion,
+      numero_identificacion: data.numero_identificacion,
+      genero: data.genero,
+      fecha_nacimiento: data.fecha_nacimiento ? new Date(data.fecha_nacimiento) : undefined,
+      lugar_nacimiento: data.lugar_nacimiento,
+      discapacidad: data.discapacidad,
+      vulnerabilidad: data.vulnerabilidad,
+      ciudad: data.ciudad,
+      direccion_actual: data.direccion_actual,
+      email: data.email ?? null,
+      numero_contacto: data.numero_contacto,
+    };
+
+  }
+
+  private construirDatosPerfilSocioeconomico(data: CreateSolicitanteDto | UpdateSolicitanteDto) {
+    return {
+      nivel_estudio: data.nivel_estudio,
+      sisben: data.sisben,
+      estrato: data.estrato,
+      nivel_ingreso_economico: data.nivel_ingreso_economico,
+      actividad_economica: data.actividad_economica,
+      oficio: data.oficio,
+    };
+  }
 
   private buildSolicitanteWherePrismaClientClause(filters: {
     tipo_identificacion?: TipoIdentificacion;
