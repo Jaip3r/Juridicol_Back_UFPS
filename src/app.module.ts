@@ -11,8 +11,10 @@ import { ConfigModule } from '@nestjs/config';
 import { MailModule } from './mail/mail.module';
 import { SolicitantesModule } from './solicitantes/solicitantes.module';
 import { ConsultasModule } from './consultas/consultas.module';
-import { FileUploadModule } from './file-upload/file-upload.module';
+import { StorageModule } from './storage/storage.module';
+import { ArchivosModule } from './archivos/archivos.module';
 import config from './config/configuration';
+
 
 @Module({
   imports: [
@@ -73,7 +75,8 @@ import config from './config/configuration';
     MailModule,
     SolicitantesModule,
     ConsultasModule,
-    FileUploadModule,
+    StorageModule,
+    ArchivosModule
   ],
   controllers: [],
   providers: [
