@@ -1,23 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { SolicitantesService } from '../solicitantes/solicitantes.service';
 import { Prisma } from '@prisma/client';
 import { AreaDerecho } from '../users/enum/areaDerecho.enum';
+import { ArchivosService } from 'src/archivos/archivos.service';
+import { TipoConsulta } from './enum/tipoConsulta';
+import { Discapacidad } from 'src/solicitantes/enum/discapacidad';
+import { Vulnerabilidad } from 'src/solicitantes/enum/vulnerabilidad';
+import { NivelEstudio } from 'src/solicitantes/enum/nivelEstudio';
+import { Sisben } from 'src/solicitantes/enum/sisben';
+import { Estrato } from 'src/solicitantes/enum/estrato';
+import { EstadoConsulta } from './enum/estadoConsulta';
+import { buildWherePrismaClientClause } from 'src/common/utils/buildPrismaClientWhereClause';
 
 @Injectable()
 export class ConsultasService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly solicitanteService: SolicitantesService
+    private readonly solicitanteService: SolicitantesService,
+    private readonly archivosService: ArchivosService
   ) {}
 
 
-  /*---- createConsulta method ------*/
+  /*---- registerConsulta method ------*/
 
-  async create(data: CreateConsultaDto, userId: number) {
+  async registerConsulta(data: CreateConsultaDto, userId: number, anexos: Array<Express.Multer.File>) {
+
+    if (data.tipo_consulta !== TipoConsulta.consulta && anexos && anexos.length > 0) {
+      throw new BadRequestException('Solo se permiten anexos para procesos de tipo consulta');
+    }
     
     return this.prisma.$transaction(async (prisma) => {
 
@@ -52,7 +66,7 @@ export class ConsultasService {
       const radicado = `CJ${areaCode}${sequentialNumber}${semestreString}`;
 
       // Creamos la consulta con los datos proporcionados
-      return prisma.consulta.create({
+      const consulta = await prisma.consulta.create({
         data: {
           radicado,
           tipo_consulta: data.tipo_consulta,
@@ -71,14 +85,80 @@ export class ConsultasService {
           id_solicitante: solicitante.id,
           id_estudiante_registro: userId
         }
-      })
+      });
+
+      await this.archivosService.uploadFilesInMemory(anexos, consulta.id, prisma);
+
+      return consulta;
 
     })
 
   }
 
-  findAll() {
-    return `This action returns all consultas`;
+
+  /*---- getConsultasByFilters method ------*/
+
+  async getConsultasByFilters(
+    filters: {
+      area_derecho?: AreaDerecho;
+      tipo_consulta?: TipoConsulta;
+      estado?: EstadoConsulta;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    },
+    order: 'asc' | 'desc' = 'desc',
+    pagination: {
+      cursor?: { id: number };
+      limit: number;
+      direction: 'next' | 'prev' | 'none';
+    },
+    searchItem?: string
+  ) {
+
+    // Obtenemos el limite y dirección del objeto de paginación
+    const { limit, direction } = pagination;
+
+    // Consultamos los solicitantes en base a al valor de los parametros
+    const consultas = await this.getConsultasByfilterWithPrismaClient(filters, order, pagination);
+
+    // Si no hay registros, devolvemos vacío
+    if (consultas.length === 0) {
+      return {
+        consultas: [],
+        nextCursor: null,
+        prevCursor: null
+      };
+    }
+
+    // Dependiendo de la dirección de paginación, usamos el elemento extra consultado
+    const definedConsultas =
+      direction === 'prev'
+        ? consultas.slice(-limit)
+        : consultas.slice(0, limit);
+
+    // Verificación de si hay más elementos por paginar
+    const hasMore = consultas.length > limit;
+
+    // Determinamos los valores de nuestros nuevos cursores
+    let nextCursor =
+      direction === 'prev' || hasMore
+        ? definedConsultas.at(-1).id
+        : undefined;
+
+    let prevCursor =
+      direction === 'next' || (direction === 'prev' && hasMore)
+        ? definedConsultas.at(0).id
+        : undefined;
+
+    return {
+      consultas: definedConsultas,
+      nextCursor,
+      prevCursor
+    };
+
   }
 
   findOne(id: number) {
@@ -95,6 +175,9 @@ export class ConsultasService {
 
 
   // Util Methods
+
+
+  /*---- incrementarRadicadoCounter method ------*/
 
   private async incrementRadicadoCounter(
     prisma: Prisma.TransactionClient,
@@ -173,6 +256,109 @@ export class ConsultasService {
       }
       
     }
+
+  }
+
+
+  /*---- getConsultasByFilterWithPrismaClient method ------*/
+
+  private async getConsultasByfilterWithPrismaClient(
+    filters: {
+      area_derecho?: AreaDerecho;
+      tipo_consulta?: TipoConsulta;
+      estado?: EstadoConsulta;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    },
+    order: 'asc' | 'desc' = 'desc',
+    pagination: {
+      cursor?: { id: number };
+      limit: number;
+      direction: 'next' | 'prev' | 'none';
+    }
+  ) {
+
+    // Destructuramos los datos para manejar la paginación
+    const { cursor, limit, direction } = pagination;
+
+    // Creamos el objeto where de la consulta con los filtros proporcionados
+    const where = this.buildConsultaWherePrismaClientClause(filters);
+
+    // Configuramos el cursor para la paginación
+    const queryCursor = cursor
+      ? { id: cursor.id }
+      : undefined;
+
+    // Obtenemos las consultas que cumplen con los parametros de filtro y usando paginación basada en cursor
+    const flteredConsultas = await this.prisma.consulta.findMany({
+      take: (direction === 'prev' ? -1 : 1) * (limit + 1),
+      skip: cursor ? 1 : 0,
+      cursor: queryCursor,
+      select: {
+        id: true,
+        radicado: true,
+        area_derecho: true,
+        estado: true,
+        fecha_registro: true,
+        solicitante: {
+          select: {
+            nombre: true,
+            apellidos: true,
+            tipo_identificacion: true,
+            numero_identificacion: true
+          }
+        },
+        estudiante_registro: {
+          select: {
+            nombres: true,
+            apellidos: true,
+            codigo: true
+          }
+        }
+      },
+      where,
+      orderBy: [{ id: order }]
+    });
+
+    return flteredConsultas;
+
+  }
+
+
+  /*---- buildConsultaWherePrismaClientClause method ------*/
+
+  private buildConsultaWherePrismaClientClause(filters: {
+    area_derecho?: AreaDerecho;
+    tipo_consulta?: TipoConsulta;
+    estado?: EstadoConsulta;
+    discapacidad?: Discapacidad;
+    vulnerabilidad?: Vulnerabilidad;
+    nivel_estudio?: NivelEstudio;
+    sisben?: Sisben;
+    estrato?: Estrato;
+  }) {
+
+    // Aplicamos formato a los filtros 
+    const formattedFilters = {
+      area_derecho: filters.area_derecho,
+      tipo_consulta: filters.tipo_consulta,
+      estado: filters.estado,
+      solicitante: {
+        discapacidad: filters.discapacidad,
+        vulnerabilidad: filters.vulnerabilidad,
+        perfilSocioeconomico: {
+          nivel_estudio: filters.nivel_estudio,
+          sisben: filters.sisben,
+          estrato: filters.estrato
+        }
+      }
+    }
+
+    // Construimos el objeto de filtrado final, eliminando los elementos sin valor
+    return buildWherePrismaClientClause(formattedFilters);
 
   }
 
