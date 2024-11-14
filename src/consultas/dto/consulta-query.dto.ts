@@ -10,7 +10,6 @@ import { Estrato } from "src/solicitantes/enum/estrato";
 import { Sisben } from "src/solicitantes/enum/sisben";
 
 
-
 export class ConsultaQueryDTO {
 
     @ApiProperty({
@@ -18,7 +17,7 @@ export class ConsultaQueryDTO {
         example: "laboral"
     })
     @IsOptional()
-    @IsEnum(AreaDerecho)
+    @IsEnum(AreaDerecho, { message: "Área de derecho no válida" })
     area_derecho?: AreaDerecho;
 
     @ApiProperty({
@@ -26,7 +25,7 @@ export class ConsultaQueryDTO {
         example: "consulta"
     })
     @IsOptional()
-    @IsEnum(TipoConsulta)
+    @IsEnum(TipoConsulta, { message: "Tipo de consulta no válido" })
     tipo_consulta?: TipoConsulta;
 
     @ApiProperty({
@@ -34,7 +33,7 @@ export class ConsultaQueryDTO {
         example: "pendiente"
     })
     @IsOptional()
-    @IsEnum(EstadoConsulta)
+    @IsEnum(EstadoConsulta, { message: "Estado de consulta no válido" })
     estado?: EstadoConsulta;
 
     @ApiProperty({
@@ -42,7 +41,7 @@ export class ConsultaQueryDTO {
         example: "Ninguna"
     })
     @IsOptional()
-    @IsEnum(Discapacidad)
+    @IsEnum(Discapacidad, { message: "Discapacidad no válida" })
     discapacidad?: Discapacidad;
 
     @ApiProperty({
@@ -50,7 +49,7 @@ export class ConsultaQueryDTO {
         example: "Ninguna"
     })
     @IsOptional()
-    @IsEnum(Vulnerabilidad)
+    @IsEnum(Vulnerabilidad, { message: "Vulnerabilidad no válida" })
     vulnerabilidad?: Vulnerabilidad;
 
     @ApiProperty({
@@ -58,7 +57,7 @@ export class ConsultaQueryDTO {
         example: "Profesional"
     })
     @IsOptional()
-    @IsEnum(NivelEstudio)
+    @IsEnum(NivelEstudio, { message: "Nivel de estudio no válido" })
     nivel_estudio?: NivelEstudio;
 
     @ApiProperty({
@@ -66,7 +65,7 @@ export class ConsultaQueryDTO {
         example: "Estrato 4"
     })
     @IsOptional()
-    @IsEnum(Estrato)
+    @IsEnum(Estrato, { message: "Estrato no válido" })
     estrato?: Estrato;
 
     @ApiProperty({
@@ -74,7 +73,7 @@ export class ConsultaQueryDTO {
         example: "C1 - C18"
     })
     @IsOptional()
-    @IsEnum(Sisben)
+    @IsEnum(Sisben, { message: "Sisben no válido" })
     sisben?: Sisben;
 
     @ApiProperty({

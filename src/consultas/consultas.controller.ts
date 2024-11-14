@@ -7,7 +7,7 @@ import { Rol } from '../users/enum/rol.enum';
 import { ActorUser } from '../common/decorators/actor-user.decorator';
 import { ActorUserInterface } from '../common/interfaces/actor-user.interface';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { CustomUploadFileTypeValidator } from 'src/common/validation/fileTypeValidator';
+import { CustomUploadFileTypeValidator } from '../common/validation/fileTypeValidator';
 import { ConsultaQueryDTO } from './dto/consulta-query.dto';
 import { format } from 'date-fns';
 import { TZDate } from '@date-fns/tz';
@@ -56,6 +56,7 @@ export class ConsultasController {
     }
 
   }
+
 
   @Authorization([Rol.ADMIN])
   @Get()
@@ -165,6 +166,53 @@ export class ConsultasController {
     };
 
   }
+
+
+  @Authorization([Rol.ADMIN])
+  @Get('/count')
+  async countConsultas(
+    @Query() query: ConsultaQueryDTO
+  ) {
+
+    // Datos del objeto query
+    const {
+      area_derecho,
+      tipo_consulta,
+      estado,
+      discapacidad,
+      vulnerabilidad,
+      nivel_estudio,
+      sisben,
+      estrato,
+      searchItem
+    } = query;
+
+    // Filtros a aplicar a la consulta
+    const filters = {
+      area_derecho,
+      tipo_consulta,
+      estado,
+      discapacidad,
+      vulnerabilidad,
+      nivel_estudio,
+      sisben,
+      estrato
+    };
+
+    // Cadena para busqueda basada en texto
+    const formattedSearchItem = searchItem ? searchItem.trim().toLowerCase() : undefined;
+
+    // Obtenemos el conteo
+    const totalRecords = await this.consultasService.countConsultasByFilters(filters, formattedSearchItem);
+
+    return {
+      status: 200,
+      message: 'Conteo de consultas realizado correctamente',
+      totalRecords: totalRecords ? totalRecords : 0
+    };
+
+  }
+
 
   @Get(':id')
   findOne(@Param('id') id: string) {

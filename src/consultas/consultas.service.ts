@@ -1,19 +1,21 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { SolicitantesService } from '../solicitantes/solicitantes.service';
 import { Prisma } from '@prisma/client';
 import { AreaDerecho } from '../users/enum/areaDerecho.enum';
-import { ArchivosService } from 'src/archivos/archivos.service';
+import { ArchivosService } from '../archivos/archivos.service';
 import { TipoConsulta } from './enum/tipoConsulta';
-import { Discapacidad } from 'src/solicitantes/enum/discapacidad';
-import { Vulnerabilidad } from 'src/solicitantes/enum/vulnerabilidad';
-import { NivelEstudio } from 'src/solicitantes/enum/nivelEstudio';
-import { Sisben } from 'src/solicitantes/enum/sisben';
-import { Estrato } from 'src/solicitantes/enum/estrato';
+import { Discapacidad } from '../solicitantes/enum/discapacidad';
+import { Vulnerabilidad } from '../solicitantes/enum/vulnerabilidad';
+import { NivelEstudio } from '../solicitantes/enum/nivelEstudio';
+import { Sisben } from '../solicitantes/enum/sisben';
+import { Estrato } from '../solicitantes/enum/estrato';
 import { EstadoConsulta } from './enum/estadoConsulta';
-import { buildWherePrismaClientClause } from 'src/common/utils/buildPrismaClientWhereClause';
+import { buildWherePrismaClientClause } from '../common/utils/buildPrismaClientWhereClause';
+import { TipoAnexo } from 'src/archivos/enum/tipoAnexo';
+
 
 @Injectable()
 export class ConsultasService {
@@ -160,6 +162,61 @@ export class ConsultasService {
     };
 
   }
+
+
+  /*---- countConsultasByFilters method ------*/
+
+  countConsultasByFilters(
+    filters: {
+      area_derecho?: AreaDerecho;
+      tipo_consulta?: TipoConsulta;
+      estado?: EstadoConsulta;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    },
+    searchItem?: string
+  ) {
+
+    return searchItem !== undefined && searchItem !== ''
+      ? 1
+      : this.countConsultasWithPrismaClient(filters);
+
+  }
+
+
+  /*---- getArchivosConsulta method ------*/
+
+  async getArchivosConsulta(
+    tipo_anexo: TipoAnexo,
+    order: 'asc' | 'desc' = 'desc',
+    pagination: {
+      cursor?: { id: number };
+      limit: number;
+      direction: 'next' | 'prev' | 'none';
+    },
+    id_consulta: number
+  ) {
+
+    // Verificamos la existencia de la consulta
+    const consultaExist = await this.prisma.consulta.findUnique({
+      where: {
+        id: id_consulta
+      }
+    });
+
+    if (!consultaExist) {
+      throw new NotFoundException("Consulta no identificada");;
+    }
+
+    // Devolvemos los arhcivos asociados a dicha consulta
+    return this.archivosService.getArcvhivosByConsulta(tipo_anexo, order, pagination, id_consulta);
+
+    
+  }
+
 
   findOne(id: number) {
     return `This action returns a #${id} consulta`;
@@ -324,6 +381,32 @@ export class ConsultasService {
     });
 
     return flteredConsultas;
+
+  }
+
+
+  /*---- getConsultasByFilterWithPrismaClient method ------*/
+
+  private countConsultasWithPrismaClient(
+    filters: {
+      area_derecho?: AreaDerecho;
+      tipo_consulta?: TipoConsulta;
+      estado?: EstadoConsulta;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    }
+  ) {
+
+    // Creamos el objeto where con los filtros proporcionados
+    const where = this.buildConsultaWherePrismaClientClause(filters);
+
+    // Obtenemos el total de registros que coinciden con los filtros
+    return this.prisma.consulta.count({
+      where
+    });
 
   }
 
