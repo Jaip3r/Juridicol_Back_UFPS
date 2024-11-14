@@ -11,7 +11,7 @@ export class UsersQueryDto {
         example: "estudiante"
     })
     @IsOptional()
-    @IsEnum(Rol)
+    @IsEnum(Rol, { message: "Rol no válido" })
     rol?: Rol;
 
     @ApiProperty({
@@ -19,7 +19,7 @@ export class UsersQueryDto {
         example: "laboral"
     })
     @IsOptional()
-    @IsEnum(AreaDerecho)
+    @IsEnum(AreaDerecho, { message: "Área de derecho no válida" })
     area_derecho?: AreaDerecho;
   
     @ApiProperty({
@@ -27,7 +27,7 @@ export class UsersQueryDto {
         example: "A"
     })
     @IsOptional()
-    @IsEnum(Grupo)
+    @IsEnum(Grupo, { message: "Grupo no válido" })
     grupo?: Grupo;
   
     @ApiProperty({
