@@ -77,6 +77,14 @@ export class ConsultaQueryDTO {
     sisben?: Sisben;
 
     @ApiProperty({
+        description: "Limite para obtención de consultas",
+        example: "global"
+    })
+    @IsOptional()
+    @IsIn(['diaria', 'global'])
+    limite?: 'diaria' | 'global';
+
+    @ApiProperty({
         description: "Orden de los datos por id",
         example: "desc"
     })

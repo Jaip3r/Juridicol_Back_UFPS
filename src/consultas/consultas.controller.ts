@@ -11,13 +11,14 @@ import { CustomUploadFileTypeValidator } from '../common/validation/fileTypeVali
 import { ConsultaQueryDTO } from './dto/consulta-query.dto';
 import { format } from 'date-fns';
 import { TZDate } from '@date-fns/tz';
+import { validateIdParamDto } from 'src/common/dto/validate-idParam.dto';
 
 
 @Controller('consultas')
 export class ConsultasController {
 
   // Constantes para manejo de paginación y formato de fechas
-  private readonly PAGE_SIZE = 1;
+  private readonly PAGE_SIZE = 5;
   private readonly TIME_ZONE = 'America/Bogota';
   private readonly DATE_FORMAT = 'dd/MM/yyyy HH:mm:ss';
 
@@ -74,6 +75,7 @@ export class ConsultasController {
       nivel_estudio,
       sisben,
       estrato,
+      limite,
       order,
       cursor,
       prevCursor,
@@ -123,6 +125,7 @@ export class ConsultasController {
     } 
     = await this.consultasService.getConsultasByFilters(
       filters,
+      limite,
       order,
       pagination,
       formattedSearchItem
@@ -132,10 +135,9 @@ export class ConsultasController {
     const formattedConsultas = consultas.map((consulta) => {
 
       const zonedFecha_registro = new TZDate(consulta.fecha_registro, this.TIME_ZONE);
-
       const formattedFecha_registro = format(zonedFecha_registro, this.DATE_FORMAT);
 
-      // Si recibimos claves anidada, combinamos todo en un objeto principal
+      // Si recibimos claves anidadas, combinamos todo en un objeto principal
       const formattedConsulta = {
         ...consulta,
         fecha_registro: formattedFecha_registro,
@@ -143,14 +145,27 @@ export class ConsultasController {
         solicitante_apellidos: consulta.solicitante.apellidos, 
         solicitante_tipo_identificacion: consulta.solicitante.tipo_identificacion, 
         solicitante_numero_identificacion: consulta.solicitante.numero_identificacion, 
-        estudiante_nombres: consulta.estudiante_registro.nombres, 
-        estudiante_apellidos: consulta.estudiante_registro.apellidos, 
-        estudiante_codigo: consulta.estudiante_registro.codigo
+        estudiante_registro_nombres: consulta.estudiante_registro.nombres, 
+        estudiante_registro_apellidos: consulta.estudiante_registro.apellidos, 
+        estudiante_registro_codigo: consulta.estudiante_registro.codigo,
+        ...(consulta.fecha_asignacion && {
+          fecha_asignacion: format(new TZDate(consulta.fecha_asignacion, this.TIME_ZONE), this.DATE_FORMAT)
+        }),
+        ...(consulta.estudiante_asignado && {
+            estudiante_asignado_nombres: consulta.estudiante_asignado.nombres,
+            estudiante_asignado_apellidos: consulta.estudiante_asignado.apellidos,
+            estudiante_asignado_codigo: consulta.estudiante_asignado.codigo,
+        }),
+        ...(consulta.fecha_finalizacion && {
+            fecha_finalizacion: format(new TZDate(consulta.fecha_finalizacion, this.TIME_ZONE), this.DATE_FORMAT)
+        })
       }
 
-      // Se elimina la propiedad del nuevo objeto para que no quede anidada
+      // Eliminamos las propiedades anidadas del objeto formateado
       delete formattedConsulta.solicitante;
       delete formattedConsulta.estudiante_registro;
+
+      if (consulta.estudiante_asignado) { delete formattedConsulta.estudiante_asignado; }
 
       return formattedConsulta
 
@@ -184,6 +199,7 @@ export class ConsultasController {
       nivel_estudio,
       sisben,
       estrato,
+      limite,
       searchItem
     } = query;
 
@@ -203,7 +219,7 @@ export class ConsultasController {
     const formattedSearchItem = searchItem ? searchItem.trim().toLowerCase() : undefined;
 
     // Obtenemos el conteo
-    const totalRecords = await this.consultasService.countConsultasByFilters(filters, formattedSearchItem);
+    const totalRecords = await this.consultasService.countConsultasByFilters(filters, limite, formattedSearchItem);
 
     return {
       status: 200,
@@ -215,8 +231,26 @@ export class ConsultasController {
 
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.consultasService.findOne(+id);
+  async findOne(
+    @Param() params: validateIdParamDto,
+    @ActorUser() { sub, username, rol }: ActorUserInterface
+  ) {
+
+    // Identificador de la consulta
+    const { id } = params;
+
+    const consulta = await this.consultasService.getInfoConsulta(+id);
+    this.logger.log({
+      radicadoConsulta: consulta.radicado,
+      responsibleUser: { sub, username, rol },
+      request: {}
+    }, `User ${username} has accessed the info of the consulta: ${consulta.radicado}`);
+    return {
+      status: 200,
+      message: `Información de la consulta ${consulta.radicado} obtenida correctamente`,
+      data: consulta
+    }
+
   }
 
 

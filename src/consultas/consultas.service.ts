@@ -15,6 +15,9 @@ import { Estrato } from '../solicitantes/enum/estrato';
 import { EstadoConsulta } from './enum/estadoConsulta';
 import { buildWherePrismaClientClause } from '../common/utils/buildPrismaClientWhereClause';
 import { TipoAnexo } from 'src/archivos/enum/tipoAnexo';
+import { SelectConsultaObject } from './interface/select-consulta';
+import { TZDate } from '@date-fns/tz';
+import { endOfDay, startOfDay } from 'date-fns';
 
 
 @Injectable()
@@ -111,6 +114,7 @@ export class ConsultasService {
       sisben?: Sisben;
       estrato?: Estrato;
     },
+    limite: 'diaria' | 'global' = 'global',
     order: 'asc' | 'desc' = 'desc',
     pagination: {
       cursor?: { id: number };
@@ -124,7 +128,7 @@ export class ConsultasService {
     const { limit, direction } = pagination;
 
     // Consultamos los solicitantes en base a al valor de los parametros
-    const consultas = await this.getConsultasByfilterWithPrismaClient(filters, order, pagination);
+    const consultas = await this.getConsultasByfilterWithPrismaClient(filters, limite, order, pagination);
 
     // Si no hay registros, devolvemos vacío
     if (consultas.length === 0) {
@@ -177,12 +181,13 @@ export class ConsultasService {
       sisben?: Sisben;
       estrato?: Estrato;
     },
+    limite: 'diaria' | 'global' = 'global',
     searchItem?: string
   ) {
 
     return searchItem !== undefined && searchItem !== ''
       ? 1
-      : this.countConsultasWithPrismaClient(filters);
+      : this.countConsultasWithPrismaClient(filters, limite);
 
   }
 
@@ -218,19 +223,74 @@ export class ConsultasService {
   }
 
 
-  findOne(id: number) {
-    return `This action returns a #${id} consulta`;
+  /*---- getInfoConsulta method ------*/
+
+  async getInfoConsulta(id: number) {
+
+    // Obtenemos la info de la consulta en base a su identificador
+    const consultaExists = await this.prisma.consulta.findUnique({
+      where: {
+        id
+      },
+      select: {
+        radicado: true,
+        tipo_consulta: true,
+        area_derecho: true,
+        estado: true,
+        hechos: true,
+        pretensiones: true,
+        observaciones: true,
+        nombre_accionante: true,
+        telefono_accionante: true, 
+        email_accionante: true,
+        direccion_accionante: true,
+        nombre_accionado: true,
+        telefono_accionado: true, 
+        email_accionado: true,
+        direccion_accionado: true,
+        fecha_registro: true,
+        fecha_asignacion: true,
+        fecha_finalizacion: true,
+        solicitante: {
+          select: {
+            nombre: true,
+            apellidos: true,
+            tipo_identificacion: true,
+            numero_identificacion: true
+          }
+        },
+        estudiante_registro: {
+          select: {
+            nombres: true,
+            apellidos: true,
+            codigo: true
+          }
+        },
+        estudiante_asignado: {
+          select: {
+            nombres: true,
+            apellidos: true,
+            codigo: true
+          }
+        }
+      }
+    });
+
+    // En caso de no encontrar al solicitante
+    if (!consultaExists) throw new NotFoundException("Consulta no identificada");
+
+    return consultaExists;
+
   }
+
+
+  // CASO PARA CAMBIO DE AREA
 
   update(id: number, updateConsultaDto: UpdateConsultaDto) {
     return `This action updates a #${id} consulta`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} consulta`;
-  }
-
-
+ 
   // Util Methods
 
 
@@ -330,6 +390,7 @@ export class ConsultasService {
       sisben?: Sisben;
       estrato?: Estrato;
     },
+    limite: 'diaria' | 'global' = 'global',
     order: 'asc' | 'desc' = 'desc',
     pagination: {
       cursor?: { id: number };
@@ -341,8 +402,20 @@ export class ConsultasService {
     // Destructuramos los datos para manejar la paginación
     const { cursor, limit, direction } = pagination;
 
+    // Obtenemos la fecha actual
+    const fecha_actual = new TZDate(new Date(), 'America/Bogota');
+
+    // Calculamos el inicio y fin del dia 
+    const start_today = startOfDay(fecha_actual).toISOString();
+    const end_today = endOfDay(fecha_actual).toISOString();
+
     // Creamos el objeto where de la consulta con los filtros proporcionados
-    const where = this.buildConsultaWherePrismaClientClause(filters);
+    const where = limite === 'diaria' 
+      ? this.buildConsultaWherePrismaClientClause(filters, start_today, end_today)
+      : this.buildConsultaWherePrismaClientClause(filters);
+
+    // Construimos el objeto select basado en el estado de la consulta 
+    const selectObject = this.buildSelectObject(filters.estado);
 
     // Configuramos el cursor para la paginación
     const queryCursor = cursor
@@ -354,28 +427,7 @@ export class ConsultasService {
       take: (direction === 'prev' ? -1 : 1) * (limit + 1),
       skip: cursor ? 1 : 0,
       cursor: queryCursor,
-      select: {
-        id: true,
-        radicado: true,
-        area_derecho: true,
-        estado: true,
-        fecha_registro: true,
-        solicitante: {
-          select: {
-            nombre: true,
-            apellidos: true,
-            tipo_identificacion: true,
-            numero_identificacion: true
-          }
-        },
-        estudiante_registro: {
-          select: {
-            nombres: true,
-            apellidos: true,
-            codigo: true
-          }
-        }
-      },
+      select: selectObject,
       where,
       orderBy: [{ id: order }]
     });
@@ -397,11 +449,21 @@ export class ConsultasService {
       nivel_estudio?: NivelEstudio;
       sisben?: Sisben;
       estrato?: Estrato;
-    }
+    },
+    limite: 'diaria' | 'global' = 'global'
   ) {
 
+    // Obtenemos la fecha actual
+    const fecha_actual = new TZDate(new Date(), 'America/Bogota');
+
+    // Calculamos el inicio y fin del dia 
+    const start_today = startOfDay(fecha_actual).toISOString();
+    const end_today = endOfDay(fecha_actual).toISOString();
+
     // Creamos el objeto where con los filtros proporcionados
-    const where = this.buildConsultaWherePrismaClientClause(filters);
+    const where = limite === 'global' 
+      ? this.buildConsultaWherePrismaClientClause(filters)
+      : this.buildConsultaWherePrismaClientClause(filters, start_today, end_today);
 
     // Obtenemos el total de registros que coinciden con los filtros
     return this.prisma.consulta.count({
@@ -413,22 +475,30 @@ export class ConsultasService {
 
   /*---- buildConsultaWherePrismaClientClause method ------*/
 
-  private buildConsultaWherePrismaClientClause(filters: {
-    area_derecho?: AreaDerecho;
-    tipo_consulta?: TipoConsulta;
-    estado?: EstadoConsulta;
-    discapacidad?: Discapacidad;
-    vulnerabilidad?: Vulnerabilidad;
-    nivel_estudio?: NivelEstudio;
-    sisben?: Sisben;
-    estrato?: Estrato;
-  }) {
+  private buildConsultaWherePrismaClientClause(
+    filters: {
+      area_derecho?: AreaDerecho;
+      tipo_consulta?: TipoConsulta;
+      estado?: EstadoConsulta;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    },
+    start_today?: string,
+    end_today?: string
+  ) {
 
     // Aplicamos formato a los filtros 
     const formattedFilters = {
       area_derecho: filters.area_derecho,
       tipo_consulta: filters.tipo_consulta,
       estado: filters.estado,
+      fecha_registro: {
+        gte: start_today,
+        lt: end_today
+      },
       solicitante: {
         discapacidad: filters.discapacidad,
         vulnerabilidad: filters.vulnerabilidad,
@@ -444,6 +514,53 @@ export class ConsultasService {
     return buildWherePrismaClientClause(formattedFilters);
 
   }
+
+
+  /*---- buildSelectObject method ------*/
+
+  private buildSelectObject (estado: EstadoConsulta): SelectConsultaObject { 
+
+    let selectObject: SelectConsultaObject = { 
+      id: true, 
+      radicado: true, 
+      area_derecho: true, 
+      estado: true, 
+      fecha_registro: true, 
+      solicitante: { 
+        select: { 
+          nombre: true, 
+          apellidos: true, 
+          tipo_identificacion: true, 
+          numero_identificacion: true 
+        } 
+      }, 
+      estudiante_registro: { 
+        select: { 
+          nombres: true, 
+          apellidos: true, 
+          codigo: true 
+        } 
+      } 
+    }; 
+    
+    if (estado === 'asignada' || estado === 'finalizada') { 
+      selectObject.fecha_asignacion = true; 
+      selectObject.estudiante_asignado = { 
+        select: { 
+          nombres: true, 
+          apellidos: true, 
+          codigo: true 
+        } 
+      }; 
+    } 
+    
+    if (estado === 'finalizada') { 
+      selectObject.fecha_finalizacion = true; 
+    } 
+    
+    return selectObject; 
+  
+  };
 
 
 }
