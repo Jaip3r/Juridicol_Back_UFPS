@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Logger, UseInterceptors, UploadedFiles, ParseFilePipeBuilder, HttpStatus, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Logger, UseInterceptors, UploadedFiles, ParseFilePipeBuilder, HttpStatus, Query, Res } from '@nestjs/common';
 import { ConsultasService } from './consultas.service';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
@@ -12,6 +12,8 @@ import { ConsultaQueryDTO } from './dto/consulta-query.dto';
 import { format } from 'date-fns';
 import { TZDate } from '@date-fns/tz';
 import { validateIdParamDto } from 'src/common/dto/validate-idParam.dto';
+import { Response } from 'express';
+import { generateExcelReport } from 'src/common/utils/generateExcelReport';
 
 
 @Controller('consultas')
@@ -61,7 +63,7 @@ export class ConsultasController {
 
   @Authorization([Rol.ADMIN])
   @Get()
-  async findAllConsultas(
+  async getConsultas(
     @Query() query: ConsultaQueryDTO
   ) {
 
@@ -230,6 +232,134 @@ export class ConsultasController {
   }
 
 
+  @Authorization([Rol.ADMIN])
+  @Get('/report')
+  async reportSolicitantes(
+    @Query() query: ConsultaQueryDTO,
+    @ActorUser() { sub, username, rol }: ActorUserInterface,
+    @Res() res: Response
+  ) {
+
+    // Datos del objeto query
+    const {
+      area_derecho,
+      tipo_consulta,
+      estado,
+      discapacidad,
+      vulnerabilidad,
+      nivel_estudio,
+      sisben,
+      estrato,
+      limite,
+      order
+    } = query;
+
+    // Filtros a aplicar a la consulta
+    const filters = {
+      area_derecho,
+      tipo_consulta,
+      estado,
+      discapacidad,
+      vulnerabilidad,
+      nivel_estudio,
+      sisben,
+      estrato
+    };
+
+    // Obtenemos los datos para realizar el reporte 
+    const infoReport = await this.consultasService.getInfoConsultasReport(filters, limite, order);
+  
+    // Formateamos los datos con los nombres de columnas personalizadas
+    const data = infoReport.map((consulta) => ({
+
+      'Radicado': consulta.radicado,
+      'Tipo de consulta': consulta.tipo_consulta === 'asesoria_verbal' ? 'Asesoria verbal' : 'Consulta',
+      'Área de derecho': consulta.area_derecho,
+      'Estado': consulta.estado,
+      'Nombre solicitante': consulta.solicitante.nombre,
+      'Apellidos solicitante': consulta.solicitante.apellidos,
+      'Tipo de identificación': consulta.solicitante.tipo_identificacion,
+      'Número de identificación': consulta.solicitante.numero_identificacion,
+      'Nombre accionante': consulta.nombre_accionante,
+      'Teléfono accionante': consulta.telefono_accionante,
+      'Email accionante': consulta.email_accionante,
+      'Dirección accionante': consulta.direccion_accionante,
+      'Nombre accionado': consulta.nombre_accionado || 'No presenta',
+      'Teléfono accionado': consulta.telefono_accionado || 'No presenta',
+      'Email accionado': consulta.email_accionado || 'No presenta',
+      'Dirección accionado': consulta.direccion_accionado || 'No presenta', 
+      'Fecha de registro': format(new TZDate(consulta.fecha_registro, this.TIME_ZONE), this.DATE_FORMAT),
+      'Nombre estudiante registro': consulta.estudiante_registro.nombres,
+      'Apellidos estudiante registro': consulta.estudiante_registro.apellidos,
+      'Código estudiante registro': consulta.estudiante_registro.codigo,
+      'Fecha asignación': consulta.fecha_asignacion ? format(new TZDate(consulta.fecha_asignacion, this.TIME_ZONE), this.DATE_FORMAT) : 'No presenta',
+      'Nombre estudiante asignado': consulta.estudiante_asignado?.nombres || 'No presenta',
+      'Apellidos estudiante asignado': consulta.estudiante_asignado?.apellidos || 'No presenta',
+      'Código estudiante asignado': consulta.estudiante_asignado?.codigo || 'No presenta',
+      'Fecha finalización': consulta.fecha_finalizacion ? format(new TZDate(consulta.fecha_finalizacion, this.TIME_ZONE), this.DATE_FORMAT) : 'No presenta'
+
+    }));
+
+    // Definimos los anchos predefinidos para las columnas
+    const columnWidths = [
+      { wch: 15 }, // Radicado
+      { wch: 20 }, // Tipo de consulta
+      { wch: 20 }, // Área de derecho
+      { wch: 15 }, // Estado
+      { wch: 30 }, // Nombre solicitante
+      { wch: 30 }, // Apellidos solicitante
+      { wch: 25 }, // Tipo de identificación
+      { wch: 15 }, // Número de identificación
+      { wch: 30 }, // Nombre accionante
+      { wch: 15 }, // Teléfono accionante
+      { wch: 30 }, // Email accionante
+      { wch: 35 }, // Dirección accionante
+      { wch: 30 }, // Nombre accionado
+      { wch: 15 }, // Teléfono accionado
+      { wch: 30 }, // Email accionado
+      { wch: 35 }, // Dirección accionado
+      { wch: 15 }, // Fecha de registro
+      { wch: 30 }, // Nombre estudiante registro
+      { wch: 30 }, // Apellido estudiante registro
+      { wch: 10 }, // Código estudiante registro
+      { wch: 15 }, // Fecha asignación
+      { wch: 30 }, // Nombre estudiante asignado
+      { wch: 30 }, // Apellidos estudiante asignado
+      { wch: 10 }, // Código estudiante asignado
+      { wch: 15 }  // Fecha de finalización
+    ];
+
+    // Generamos el archivo
+    const excelBuffer = generateExcelReport(data, columnWidths);
+
+    // Configuramos las cabeceras de respuesta para la descarga del archivo
+    res.setHeader(
+      'Content-Type', 
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition', 
+      'attachment; filename=Reporte_Solicitantes.xlsx'
+    );
+
+    // Registramos el evento
+    this.logger.log(
+      {
+        responsibleUser: { sub, username, rol },
+        request: {}
+      },
+      'New consultas report generated'
+    );
+
+    // Enviamos el buffer como respuesta
+    res.send(excelBuffer);
+
+    res.send('hola');
+
+  }
+
+
+  @Authorization([Rol.ADMIN])
   @Get(':id')
   async findOne(
     @Param() params: validateIdParamDto,
@@ -245,10 +375,37 @@ export class ConsultasController {
       responsibleUser: { sub, username, rol },
       request: {}
     }, `User ${username} has accessed the info of the consulta: ${consulta.radicado}`);
+
+    // Formateo de fecha
+    const formattedFecha_registro = format(new TZDate(consulta.fecha_registro, this.TIME_ZONE), this.DATE_FORMAT);
+
+    // Combinamos los datos en un solo objeto único
+    const formattedConsulta = {
+      ...consulta,
+      fecha_registro: formattedFecha_registro,
+      solicitante_nombre: consulta.solicitante.nombre, 
+      solicitante_apellidos: consulta.solicitante.apellidos, 
+      solicitante_tipo_identificacion: consulta.solicitante.tipo_identificacion, 
+      solicitante_numero_identificacion: consulta.solicitante.numero_identificacion, 
+      estudiante_registro_nombres: consulta.estudiante_registro.nombres, 
+      estudiante_registro_apellidos: consulta.estudiante_registro.apellidos, 
+      estudiante_registro_codigo: consulta.estudiante_registro.codigo,
+      fecha_asignacion: consulta.fecha_asignacion ? format(new TZDate(consulta.fecha_asignacion, this.TIME_ZONE), this.DATE_FORMAT) : null,
+      estudiante_asignado_nombres: consulta.estudiante_asignado?.nombres ? consulta.estudiante_asignado.nombres : null,
+      estudiante_asignado_apellidos: consulta.estudiante_asignado?.apellidos ? consulta.estudiante_asignado.apellidos : null,
+      estudiante_asignado_codigo: consulta.estudiante_asignado?.codigo ? consulta.estudiante_asignado.codigo : null,
+      fecha_finalizacion: consulta.fecha_finalizacion ? format(new TZDate(consulta.fecha_finalizacion, this.TIME_ZONE), this.DATE_FORMAT) : null
+    }
+
+    // Eliminamos las propiedades anidadas del objeto formateado
+    delete formattedConsulta.solicitante;
+    delete formattedConsulta.estudiante_registro;
+    delete formattedConsulta.estudiante_asignado; 
+
     return {
       status: 200,
       message: `Información de la consulta ${consulta.radicado} obtenida correctamente`,
-      data: consulta
+      data: formattedConsulta
     }
 
   }

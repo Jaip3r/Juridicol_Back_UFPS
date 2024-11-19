@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,7 +14,6 @@ import { Sisben } from '../solicitantes/enum/sisben';
 import { Estrato } from '../solicitantes/enum/estrato';
 import { EstadoConsulta } from './enum/estadoConsulta';
 import { buildWherePrismaClientClause } from '../common/utils/buildPrismaClientWhereClause';
-import { TipoAnexo } from 'src/archivos/enum/tipoAnexo';
 import { SelectConsultaObject } from './interface/select-consulta';
 import { TZDate } from '@date-fns/tz';
 import { endOfDay, startOfDay } from 'date-fns';
@@ -34,30 +33,35 @@ export class ConsultasService {
 
   async registerConsulta(data: CreateConsultaDto, userId: number, anexos: Array<Express.Multer.File>) {
 
-    if (data.tipo_consulta !== TipoConsulta.consulta && anexos && anexos.length > 0) {
-      throw new BadRequestException('Solo se permiten anexos para procesos de tipo consulta');
+    if (!anexos || (anexos && anexos.length === 0)) {
+      throw new BadRequestException('Se debe adjuntar como mínimo el soporte de la recepción de la consulta');
     }
-    
-    return this.prisma.$transaction(async (prisma) => {
+
+    if (data.tipo_consulta === TipoConsulta.asesoria_verbal && anexos.length > 1) {
+      throw new BadRequestException('Solo se permiten la carga de 1 anexo para procesos de tipo asesoria');
+    }
+
+    // Mapeamos el área de derecho al código correspondiente
+    const areaCodeMap = {
+      penal: 'PE',
+      laboral: 'L',
+      publico: 'PB',
+      civil: 'RC',
+    };
+    const areaCode = areaCodeMap[data.area_derecho];
+
+    // Obtenemos el año actual y el semestre
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const semestre = month <= 7 ? '1' : '2';
+    const semestreString = `${year}${semestre}`;
+
+    // Transacción para la creación la consulta
+    const consulta = await this.prisma.$transaction(async (prisma) => {
 
       // Obtenemos o creamos el solicitante
       const solicitante = await this.solicitanteService.findOrCreateSolicitante(data, prisma);
-
-      // Mapeamos el área de derecho al código correspondiente
-      const areaCodeMap = {
-        penal: 'PE',
-        laboral: 'L',
-        publico: 'PB',
-        civil: 'RC',
-      };
-      const areaCode = areaCodeMap[data.area_derecho];
-
-      // Obtenemos el año actual y el semestre
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
-      const semestre = month <= 6 ? '01' : '02';
-      const semestreString = `${year}-${semestre}`;
 
       // Incrementamos el contador de manera atómica
       const radicadoCounter = await this.incrementRadicadoCounter(
@@ -66,12 +70,17 @@ export class ConsultasService {
         semestreString
       )
 
-      // Generamos el radicado
+      // Obtenemos el número secuencial del radicado
       const sequentialNumber = radicadoCounter.contador;
-      const radicado = `CJ${areaCode}${sequentialNumber}${semestreString}`;
+
+      // Formateamos el número secuencial
+      const formattedNumber = sequentialNumber.toString().padStart(3, '0');
+
+      // Generamos el radicado
+      const radicado = `CJ${areaCode}${formattedNumber}-${semestreString}`;
 
       // Creamos la consulta con los datos proporcionados
-      const consulta = await prisma.consulta.create({
+      const nuevaConsulta = await prisma.consulta.create({
         data: {
           radicado,
           tipo_consulta: data.tipo_consulta,
@@ -92,11 +101,23 @@ export class ConsultasService {
         }
       });
 
-      await this.archivosService.uploadFilesInMemory(anexos, consulta.id, prisma);
+      return nuevaConsulta;
 
-      return consulta;
+    });
 
-    })
+    try {
+
+      await this.archivosService.uploadFiles(anexos, consulta.id);
+      
+    } catch (error) {
+
+      throw new InternalServerErrorException(
+        'La consulta se registró, pero ocurrió un error al subir los archivos. Por favor, intente subirlos nuevamente.'
+      );
+      
+    }
+
+    return consulta;
 
   }
 
@@ -192,34 +213,47 @@ export class ConsultasService {
   }
 
 
-  /*---- getArchivosConsulta method ------*/
+  /*---- getConsultasReport method ------*/
 
-  async getArchivosConsulta(
-    tipo_anexo: TipoAnexo,
-    order: 'asc' | 'desc' = 'desc',
-    pagination: {
-      cursor?: { id: number };
-      limit: number;
-      direction: 'next' | 'prev' | 'none';
+  getInfoConsultasReport(
+    filters: {
+      area_derecho?: AreaDerecho;
+      tipo_consulta?: TipoConsulta;
+      estado?: EstadoConsulta;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
     },
-    id_consulta: number
+    limite: 'diaria' | 'global' = 'global',
+    order: 'asc' | 'desc' = 'desc'
   ) {
 
-    // Verificamos la existencia de la consulta
-    const consultaExist = await this.prisma.consulta.findUnique({
-      where: {
-        id: id_consulta
-      }
+    // Obtenemos la fecha actual
+    const fecha_actual = new TZDate(new Date(), 'America/Bogota');
+
+    // Calculamos el inicio y fin del dia 
+    const start_today = startOfDay(fecha_actual).toISOString();
+    const end_today = endOfDay(fecha_actual).toISOString();
+
+    // Creamos el objeto where con los filtros proporcionados
+    const where = limite === 'diaria'
+      ? this.buildConsultaWherePrismaClientClause(filters, start_today, end_today)
+      : this.buildConsultaWherePrismaClientClause(filters);
+
+    // Construimos el objeto select basado en el estado de la consulta 
+    const selectObject = this.buildSelectObject(filters.estado, true);
+
+    // Devolvemos la info obtenida
+    return this.prisma.consulta.findMany({
+      where,
+      select: selectObject,
+      orderBy: [
+        { id: order }
+      ]
     });
 
-    if (!consultaExist) {
-      throw new NotFoundException("Consulta no identificada");;
-    }
-
-    // Devolvemos los arhcivos asociados a dicha consulta
-    return this.archivosService.getArcvhivosByConsulta(tipo_anexo, order, pagination, id_consulta);
-
-    
   }
 
 
@@ -341,8 +375,7 @@ export class ConsultasService {
         } catch (createError) {
 
           if (
-            createError.code === 'P2002' &&
-            createError.meta.target.includes('area_semestre_unique')
+            createError.code === 'P2002' 
           ) {
 
             // En caso de que otro proceso haya creado el registro, reintentamos la actualización
@@ -518,7 +551,7 @@ export class ConsultasService {
 
   /*---- buildSelectObject method ------*/
 
-  private buildSelectObject (estado: EstadoConsulta): SelectConsultaObject { 
+  private buildSelectObject (estado: EstadoConsulta, informe?: boolean): SelectConsultaObject { 
 
     let selectObject: SelectConsultaObject = { 
       id: true, 
@@ -543,6 +576,7 @@ export class ConsultasService {
       } 
     }; 
     
+    // En caso que el estado de la consulta sea asignada o finalizada
     if (estado === 'asignada' || estado === 'finalizada') { 
       selectObject.fecha_asignacion = true; 
       selectObject.estudiante_asignado = { 
@@ -554,9 +588,23 @@ export class ConsultasService {
       }; 
     } 
     
+    // En caso que el estado de la consulta sea finalizada
     if (estado === 'finalizada') { 
       selectObject.fecha_finalizacion = true; 
-    } 
+    }
+    
+    // Caso para la generación del reporte
+    if (informe) {
+      selectObject.tipo_consulta = true;
+      selectObject.nombre_accionante = true;
+      selectObject.telefono_accionante = true; 
+      selectObject.email_accionante = true;
+      selectObject.direccion_accionante = true;
+      selectObject.nombre_accionado = true;
+      selectObject.telefono_accionado = true; 
+      selectObject.email_accionado = true;
+      selectObject.direccion_accionado = true;
+    }
     
     return selectObject; 
   

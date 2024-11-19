@@ -2,8 +2,17 @@ export interface SelectConsultaObject {
 
     id: boolean;
     radicado: boolean;
+    tipo_consulta?: boolean;
     area_derecho: boolean;
     estado: boolean;
+    nombre_accionante?: boolean;
+    telefono_accionante?: boolean; 
+    email_accionante?: boolean;
+    direccion_accionante?: boolean;
+    nombre_accionado?: boolean;
+    telefono_accionado?: boolean; 
+    email_accionado?: boolean;
+    direccion_accionado?: boolean;
     fecha_registro: boolean;
     solicitante: {
         select: {
