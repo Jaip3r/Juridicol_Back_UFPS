@@ -41,6 +41,10 @@ export class ConsultasService {
       throw new BadRequestException('Solo se permiten la carga de 1 anexo para procesos de tipo asesoria');
     }
 
+    if ((data.discapacidad !== Discapacidad.NONE && data.vulnerabilidad === Vulnerabilidad.NONE) || (data.vulnerabilidad === Vulnerabilidad.PDI && data.discapacidad === Discapacidad.NONE)) {
+      throw new BadRequestException('Si el solicitante presenta una discapacidad, debe asociarla con la vulnerabilidad correspondiente');
+    }
+
     // Mapeamos el área de derecho al código correspondiente
     const areaCodeMap = {
       penal: 'PE',
@@ -85,6 +89,7 @@ export class ConsultasService {
           radicado,
           tipo_consulta: data.tipo_consulta,
           area_derecho: data.area_derecho,
+          estado: data.tipo_consulta === TipoConsulta.asesoria_verbal ? 'finalizada' : 'pendiente', 
           hechos: data.hechos,
           pretensiones: data.pretensiones,
           observaciones: data.observaciones,
@@ -97,7 +102,10 @@ export class ConsultasService {
           email_accionado: data.correo_accionado,
           direccion_accionado: data.direccion_accionado,
           id_solicitante: solicitante.id,
-          id_estudiante_registro: userId
+          id_estudiante_registro: userId,
+          ...(data.tipo_consulta === TipoConsulta.asesoria_verbal && {
+            fecha_finalizacion: new Date()
+          })
         }
       });
 
@@ -105,6 +113,7 @@ export class ConsultasService {
 
     });
 
+    // Llevamos a cabo la carga de archivos
     try {
 
       await this.archivosService.uploadFiles(anexos, consulta.id);

@@ -309,24 +309,24 @@ export class ConsultasController {
       { wch: 30 }, // Nombre solicitante
       { wch: 30 }, // Apellidos solicitante
       { wch: 25 }, // Tipo de identificación
-      { wch: 15 }, // Número de identificación
-      { wch: 30 }, // Nombre accionante
-      { wch: 15 }, // Teléfono accionante
+      { wch: 25 }, // Número de identificación
+      { wch: 40 }, // Nombre accionante
+      { wch: 25 }, // Teléfono accionante
       { wch: 30 }, // Email accionante
-      { wch: 35 }, // Dirección accionante
-      { wch: 30 }, // Nombre accionado
-      { wch: 15 }, // Teléfono accionado
+      { wch: 40 }, // Dirección accionante
+      { wch: 40 }, // Nombre accionado
+      { wch: 25 }, // Teléfono accionado
       { wch: 30 }, // Email accionado
-      { wch: 35 }, // Dirección accionado
-      { wch: 15 }, // Fecha de registro
+      { wch: 40 }, // Dirección accionado
+      { wch: 25 }, // Fecha de registro
       { wch: 30 }, // Nombre estudiante registro
       { wch: 30 }, // Apellido estudiante registro
-      { wch: 10 }, // Código estudiante registro
-      { wch: 15 }, // Fecha asignación
+      { wch: 25 }, // Código estudiante registro
+      { wch: 25 }, // Fecha asignación
       { wch: 30 }, // Nombre estudiante asignado
       { wch: 30 }, // Apellidos estudiante asignado
-      { wch: 10 }, // Código estudiante asignado
-      { wch: 15 }  // Fecha de finalización
+      { wch: 25 }, // Código estudiante asignado
+      { wch: 25 }  // Fecha de finalización
     ];
 
     // Generamos el archivo
@@ -353,8 +353,6 @@ export class ConsultasController {
 
     // Enviamos el buffer como respuesta
     res.send(excelBuffer);
-
-    res.send('hola');
 
   }
 
