@@ -15,7 +15,6 @@ import { Estrato } from '../solicitantes/enum/estrato';
 import { EstadoConsulta } from './enum/estadoConsulta';
 import { buildWherePrismaClientClause } from '../common/utils/buildPrismaClientWhereClause';
 import { SelectConsultaObject } from './interface/select-consulta';
-import { TZDate } from '@date-fns/tz';
 import { endOfDay, startOfDay } from 'date-fns';
 
 
@@ -158,7 +157,9 @@ export class ConsultasService {
     const { limit, direction } = pagination;
 
     // Consultamos los solicitantes en base a al valor de los parametros
-    const consultas = await this.getConsultasByfilterWithPrismaClient(filters, limite, order, pagination);
+    const consultas = searchItem !== undefined && searchItem !== '' 
+      ? await this.getConsultasByFiltersWithQueryRaw(filters, limite, order, pagination, searchItem)
+      : await this.getConsultasByfilterWithPrismaClient(filters, limite, order, pagination);
 
     // Si no hay registros, devolvemos vacío
     if (consultas.length === 0) {
@@ -216,13 +217,13 @@ export class ConsultasService {
   ) {
 
     return searchItem !== undefined && searchItem !== ''
-      ? 1
+      ? this.countConsultasWithQueryRaw(filters, limite, searchItem)
       : this.countConsultasWithPrismaClient(filters, limite);
 
   }
 
 
-  /*---- getConsultasReport method ------*/
+  /*---- getInfoConsultasReport method ------*/
 
   getInfoConsultasReport(
     filters: {
@@ -240,7 +241,7 @@ export class ConsultasService {
   ) {
 
     // Obtenemos la fecha actual
-    const fecha_actual = new TZDate(new Date(), 'America/Bogota');
+    const fecha_actual = new Date();
 
     // Calculamos el inicio y fin del dia 
     const start_today = startOfDay(fecha_actual).toISOString();
@@ -445,7 +446,7 @@ export class ConsultasService {
     const { cursor, limit, direction } = pagination;
 
     // Obtenemos la fecha actual
-    const fecha_actual = new TZDate(new Date(), 'America/Bogota');
+    const fecha_actual = new Date();
 
     // Calculamos el inicio y fin del dia 
     const start_today = startOfDay(fecha_actual).toISOString();
@@ -479,7 +480,136 @@ export class ConsultasService {
   }
 
 
-  /*---- getConsultasByFilterWithPrismaClient method ------*/
+  /*---- getConsultasByFilterWithQueryRaw method ------*/
+
+  private async getConsultasByFiltersWithQueryRaw(
+    filters: {
+      area_derecho?: AreaDerecho;
+      tipo_consulta?: TipoConsulta;
+      estado?: EstadoConsulta;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    },
+    limite: 'diaria' | 'global' = 'global',
+    order: 'asc' | 'desc' = 'desc',
+    pagination: {
+      cursor?: { id: number };
+      limit: number;
+      direction: 'next' | 'prev' | 'none';
+    },
+    searchItem?: string
+  ) {
+
+    // Obtenemos los datos del objeto de paginación
+    const { cursor, limit, direction } = pagination;
+
+    // Obtenemos la fecha actual
+    const fecha_actual = new Date();
+
+    // Calculamos el inicio y fin del dia 
+    const start_today = startOfDay(fecha_actual).toISOString();
+    const end_today = endOfDay(fecha_actual).toISOString();
+
+    // Construimos el array de condiciones 
+    const conditions = limite === 'diaria' 
+      ? this.buildConsultaConditionsClauseQueryRaw(filters, searchItem, start_today, end_today)
+      : this.buildConsultaConditionsClauseQueryRaw(filters, searchItem);
+    
+    // Ajustamos los operadores de comparación y el orden de los datos
+    let operator: string;
+    let adjustedOrder: 'asc' | 'desc';
+
+    if (direction === 'next') {
+
+      operator = order === 'asc' ? '>=' : '<=';
+      adjustedOrder = order;
+
+    } else if (direction === 'prev') {
+
+      operator = order === 'asc' ? '<=' : '>=';
+      adjustedOrder = order === 'asc' ? 'desc' : 'asc';
+
+    } else {
+      adjustedOrder = order;
+    }
+
+    // Condición para el manejo del cursor para la paginación
+    if (cursor) {
+
+      // Añadimos la condición que rige la paginación
+      conditions.push(
+        Prisma.sql`"Consulta"."id" ${Prisma.raw(operator)} (
+          SELECT "id" 
+          FROM "Consulta"
+          WHERE "id" = ${cursor}
+          LIMIT 1
+        )`
+      );
+
+    }
+
+    // Unimos todas las condiciones con 'AND'
+    const whereClause = conditions.length
+      ? Prisma.join(conditions, ' AND ')
+      : undefined;
+    
+    // Configuramos el número de registros a obtener (take)
+    const takeClause = limit + 1;
+
+    // Configuramos el offset
+    const offsetClause = cursor ? Prisma.sql`OFFSET 1` : Prisma.empty;
+
+    // Construimos y ejecutamos la consulta
+    const consultas = await this.prisma.$queryRaw<
+      any[]
+    >`
+      SELECT 
+        "Consulta"."id",
+        "Consulta"."radicado",
+        "Consulta"."area_derecho",
+        "Consulta"."estado",
+        "Consulta"."fecha_registro",
+        "Consulta"."fecha_asignacion",
+        "Consulta"."fecha_finalizacion",
+        "Solicitante"."nombre" AS "solicitante_nombre",
+        "Solicitante"."apellidos" AS "solicitante_apellidos",
+        "Solicitante"."tipo_identificacion" AS "solicitante_tipo_identificacion",
+        "Solicitante"."numero_identificacion" AS "solicitante_numero_identificacion",
+        "Estudiante_Registro"."nombres" AS "estudiante_registro_nombres",
+        "Estudiante_Registro"."apellidos" AS "estudiante_registro_apellidos",
+        "Estudiante_Registro"."codigo" AS "estudiante_registro_codigo",
+        "Estudiante_Asignacion"."nombres" AS "estudiante_asignado_nombres",
+        "Estudiante_Asignacion"."apellidos" AS "estudiante_asignado_apellidos",
+        "Estudiante_Asignacion"."codigo" AS "estudiante_asignado_codigo"
+      FROM "Consulta"
+      INNER JOIN "Solicitante" 
+        ON "Consulta"."id_solicitante" = "Solicitante"."id"
+      LEFT JOIN "PerfilSocioEconomico"
+        ON "Solicitante"."id" = "PerfilSocioEconomico"."id_solicitante"
+      LEFT JOIN "Usuario" AS "Estudiante_Registro"
+        ON "Consulta"."id_estudiante_registro" = "Estudiante_Registro"."id"
+      LEFT JOIN "Usuario" AS "Estudiante_Asignacion"
+        ON "Consulta"."id_estudiante_asignado" = "Estudiante_Asignacion"."id"
+      WHERE ${whereClause}
+      ORDER BY "Consulta"."id" ${Prisma.raw(adjustedOrder.toUpperCase())}
+      LIMIT ${takeClause}
+      ${offsetClause}
+    `;
+
+    // En caso de paginar hacia atrás
+    if (direction === 'prev') {
+      consultas.reverse();
+    }
+
+    return consultas;
+
+  }
+
+
+  /*---- countConsultasByFilterWithPrismaClient method ------*/
 
   private countConsultasWithPrismaClient(
     filters: {
@@ -496,7 +626,7 @@ export class ConsultasService {
   ) {
 
     // Obtenemos la fecha actual
-    const fecha_actual = new TZDate(new Date(), 'America/Bogota');
+    const fecha_actual = new Date();
 
     // Calculamos el inicio y fin del dia 
     const start_today = startOfDay(fecha_actual).toISOString();
@@ -511,6 +641,57 @@ export class ConsultasService {
     return this.prisma.consulta.count({
       where
     });
+
+  }
+
+
+  /*---- countConsultasWithQueryRaw method ------*/
+
+  private async countConsultasWithQueryRaw(
+    filters: {
+      area_derecho?: AreaDerecho;
+      tipo_consulta?: TipoConsulta;
+      estado?: EstadoConsulta;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    },
+    limite: 'diaria' | 'global' = 'global',
+    searchItem?: string
+  ) {
+
+    // Obtenemos la fecha actual
+    const fecha_actual = new Date();
+
+    // Calculamos el inicio y fin del dia 
+    const start_today = startOfDay(fecha_actual).toISOString();
+    const end_today = endOfDay(fecha_actual).toISOString();
+
+    // Creamos el objeto where con los filtros proporcionados
+    const conditions = limite === 'global' 
+      ? this.buildConsultaConditionsClauseQueryRaw(filters, searchItem)
+      : this.buildConsultaConditionsClauseQueryRaw(filters, searchItem, start_today, end_today);
+
+    // Unimos todas las condiciones con 'AND'
+    const whereClause = conditions.length
+      ? Prisma.join(conditions, ' AND ')
+      : undefined;
+
+    // Calculamos el total de registros a obtener
+    const toltalRecordsResult = await this.prisma.$queryRaw<{ count: bigint }[]>`
+      SELECT COUNT(1) as count
+      FROM "Consulta"
+      INNER JOIN "Solicitante" 
+        ON "Consulta"."id_solicitante" = "Solicitante"."id"
+      LEFT JOIN "PerfilSocioEconomico"
+        ON "Solicitante"."id" = "PerfilSocioEconomico"."id_solicitante"
+      WHERE ${whereClause}
+    `;
+    const totalRecords = Number(toltalRecordsResult[0]?.count || 0);
+
+    return totalRecords;
 
   }
 
@@ -618,6 +799,87 @@ export class ConsultasService {
     return selectObject; 
   
   };
+
+
+  /*---- buildConsultaConditionsClauseQueryRaw method ------*/
+  private buildConsultaConditionsClauseQueryRaw(
+    filters: {
+      area_derecho?: AreaDerecho;
+      tipo_consulta?: TipoConsulta;
+      estado?: EstadoConsulta;
+      discapacidad?: Discapacidad;
+      vulnerabilidad?: Vulnerabilidad;
+      nivel_estudio?: NivelEstudio;
+      sisben?: Sisben;
+      estrato?: Estrato;
+    },
+    searchItem: string,
+    start_today?: string,
+    end_today?: string
+  ) {
+
+    // Construimos el array de condiciones 
+    const conditions: Prisma.Sql[] = [];
+
+    // Agregamos la condición de búsqueda por texto
+    const searchQuery = searchItem + ':*';
+    conditions.push(Prisma.sql`to_tsvector('spanish', radicado) @@ to_tsquery('spanish', ${searchQuery})`);
+
+    // Añadimos los filtros adicionales si se da el caso
+    if (filters.area_derecho) {
+      conditions.push(
+        Prisma.sql`"Consulta"."area_derecho" = ${filters.area_derecho}`
+      );
+    }
+
+    if (filters.tipo_consulta) {
+      conditions.push(
+        Prisma.sql`"Consulta"."tipo_consulta"::text = ${filters.tipo_consulta}`
+      );
+    }
+
+    if (filters.estado) {
+      conditions.push(
+        Prisma.sql`"Consulta"."estado"::text = ${filters.estado}`
+      );
+    }
+
+    if (start_today && end_today) {
+      conditions.push(
+         Prisma.sql`"Consulta"."fecha_registro" >= ${start_today}::timestamp without time zone`,
+         Prisma.sql`"Consulta"."fecha_registro" < ${end_today}::timestamp without time zone`
+      );  
+    }
+
+    // Filtros de la tabla Solicitante
+    if (filters.discapacidad) {
+      conditions.push(
+        Prisma.sql`"Solicitante"."discapacidad" = ${filters.discapacidad}`
+      );
+    }
+
+    if (filters.vulnerabilidad) {
+      conditions.push(
+        Prisma.sql`"Solicitante"."vulnerabilidad" = ${filters.vulnerabilidad}`
+      );
+    }
+
+    // Filtros de la tabla PerfilSocioeconomico
+    if (filters.nivel_estudio) {
+      conditions.push(Prisma.sql`"PerfilSocioEconomico"."nivel_estudio" = ${filters.nivel_estudio}`);
+    }
+
+    if (filters.sisben) {
+      conditions.push(Prisma.sql`"PerfilSocioEconomico"."sisben" = ${filters.sisben}`);
+    }
+
+    if (filters.estrato) {
+      conditions.push(Prisma.sql`"PerfilSocioEconomico"."estrato" = ${filters.estrato}`);
+    }
+
+    return conditions;
+
+  }
 
 
 }

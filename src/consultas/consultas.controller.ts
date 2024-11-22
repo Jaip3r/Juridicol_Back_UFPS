@@ -117,8 +117,8 @@ export class ConsultasController {
       direction
     };
 
-    // TODO: Formatear la cadena para busqueda basada en texto
-    const formattedSearchItem = '';
+    // Cadena para busqueda basada en texto
+    const formattedSearchItem = searchItem ? searchItem.trim().toLowerCase() : undefined;
 
     const {
       consultas,
@@ -140,33 +140,43 @@ export class ConsultasController {
       const formattedFecha_registro = format(zonedFecha_registro, this.DATE_FORMAT);
 
       // Si recibimos claves anidadas, combinamos todo en un objeto principal
-      const formattedConsulta = {
-        ...consulta,
-        fecha_registro: formattedFecha_registro,
-        solicitante_nombre: consulta.solicitante.nombre, 
-        solicitante_apellidos: consulta.solicitante.apellidos, 
-        solicitante_tipo_identificacion: consulta.solicitante.tipo_identificacion, 
-        solicitante_numero_identificacion: consulta.solicitante.numero_identificacion, 
-        estudiante_registro_nombres: consulta.estudiante_registro.nombres, 
-        estudiante_registro_apellidos: consulta.estudiante_registro.apellidos, 
-        estudiante_registro_codigo: consulta.estudiante_registro.codigo,
-        ...(consulta.fecha_asignacion && {
-          fecha_asignacion: format(new TZDate(consulta.fecha_asignacion, this.TIME_ZONE), this.DATE_FORMAT)
-        }),
-        ...(consulta.estudiante_asignado && {
-            estudiante_asignado_nombres: consulta.estudiante_asignado.nombres,
-            estudiante_asignado_apellidos: consulta.estudiante_asignado.apellidos,
-            estudiante_asignado_codigo: consulta.estudiante_asignado.codigo,
-        }),
-        ...(consulta.fecha_finalizacion && {
-            fecha_finalizacion: format(new TZDate(consulta.fecha_finalizacion, this.TIME_ZONE), this.DATE_FORMAT)
-        })
-      }
+      const formattedConsulta = (consulta.solicitante && consulta.estudiante_registro)
+        ? {
 
-      // Eliminamos las propiedades anidadas del objeto formateado
-      delete formattedConsulta.solicitante;
-      delete formattedConsulta.estudiante_registro;
+            ...consulta,
+            fecha_registro: formattedFecha_registro,
+            solicitante_nombre: consulta.solicitante.nombre, 
+            solicitante_apellidos: consulta.solicitante.apellidos, 
+            solicitante_tipo_identificacion: consulta.solicitante.tipo_identificacion, 
+            solicitante_numero_identificacion: consulta.solicitante.numero_identificacion, 
+            estudiante_registro_nombres: consulta.estudiante_registro.nombres, 
+            estudiante_registro_apellidos: consulta.estudiante_registro.apellidos, 
+            estudiante_registro_codigo: consulta.estudiante_registro.codigo,
+            ...(consulta.fecha_asignacion && {
+              fecha_asignacion: format(new TZDate(consulta.fecha_asignacion, this.TIME_ZONE), this.DATE_FORMAT)
+            }),
+            ...(consulta.estudiante_asignado && {
+                estudiante_asignado_nombres: consulta.estudiante_asignado.nombres,
+                estudiante_asignado_apellidos: consulta.estudiante_asignado.apellidos,
+                estudiante_asignado_codigo: consulta.estudiante_asignado.codigo,
+            }),
+            ...(consulta.fecha_finalizacion && {
+                fecha_finalizacion: format(new TZDate(consulta.fecha_finalizacion, this.TIME_ZONE), this.DATE_FORMAT)
+            })
 
+          }
+        : {
+
+            ...consulta,
+            fecha_registro: formattedFecha_registro,
+            fecha_asignacion: consulta.fecha_asignacion ? format(new TZDate(consulta.fecha_asignacion, this.TIME_ZONE), this.DATE_FORMAT) : null,
+            fecha_finalizacion: consulta.fecha_finalizacion ? format(new TZDate(consulta.fecha_finalizacion, this.TIME_ZONE), this.DATE_FORMAT) : null,
+            
+          }
+
+      // Eliminamos las propiedades anidadas del objeto formateado solo si estan presentes
+      if (consulta.solicitante) delete formattedConsulta.solicitante;
+      if (consulta.estudiante_registro) delete formattedConsulta.estudiante_registro;
       if (consulta.estudiante_asignado) { delete formattedConsulta.estudiante_asignado; }
 
       return formattedConsulta
