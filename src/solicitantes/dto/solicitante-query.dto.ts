@@ -6,17 +6,18 @@ import { NivelEstudio } from "../enum/nivelEstudio";
 import { Estrato } from "../enum/estrato";
 import { Sisben } from "../enum/sisben";
 import { ApiProperty } from "@nestjs/swagger";
+import { Tipo_Solicitante } from "../enum/tipo_solicitante";
 
 
 export class SolcitanteQueryDto {
 
   @ApiProperty({
-    description: "Tipo de identificación del solicitante",
-    example: "Cédula de ciudadanía"
+    description: "Tipo de solicitante",
+    example: "Externo"
   })
   @IsOptional()
-  @IsEnum(TipoIdentificacion)
-  tipo_identificacion?: TipoIdentificacion;
+  @IsEnum(Tipo_Solicitante)
+  tipo_solicitante?: Tipo_Solicitante;
 
   @ApiProperty({
     description: "Discapacidad del solicitante",

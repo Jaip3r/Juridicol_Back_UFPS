@@ -72,7 +72,7 @@ export class SolicitantesController {
 
   @ApiOperation({ summary: 'Obtener solicitantes aplicando filtros y paginados por cursor.' }) 
   @ApiOkResponse({
-    description: 'Solicitantes obtenidos correctamente',
+    description: 'Información de solicitantes obtenida correctamente',
     type: SolicitantePaginateResponseDto
   })
   @Get()
@@ -82,7 +82,7 @@ export class SolicitantesController {
 
     // Datos del objeto query
     const {
-      tipo_identificacion,
+      tipo_solicitante,
       discapacidad,
       vulnerabilidad,
       nivel_estudio,
@@ -96,7 +96,7 @@ export class SolicitantesController {
 
     // Filtros a aplicar a la consulta
     const filters = {
-      tipo_identificacion,
+      tipo_solicitante,
       discapacidad,
       vulnerabilidad,
       nivel_estudio,
@@ -133,7 +133,7 @@ export class SolicitantesController {
       solicitantes,
       nextCursor: nextCursorDate,
       prevCursor: newPrevCursorDate
-    } = await this.solicitantesService.findAllSolicitantes(
+    } = await this.solicitantesService.getSolicitantesByFilters(
       filters,
       order,
       pagination,
@@ -172,7 +172,7 @@ export class SolicitantesController {
 
     return {
       status: 200,
-      message: 'Solicitantes obtenidos correctamente',
+      message: 'Información de solicitantes obtenida correctamente',
       data: formattedSolicitantes,
       nextCursor: nextCursorDate ? nextCursorDate.toISOString() : null, // Devuelve el cursor para la siguiente página
       prevCursor: newPrevCursorDate ? newPrevCursorDate.toISOString() : null, // Devuelve el cursor para la anterior página
@@ -201,7 +201,7 @@ export class SolicitantesController {
 
     // Datos del objeto query
     const {
-      tipo_identificacion,
+      tipo_solicitante,
       discapacidad,
       vulnerabilidad,
       nivel_estudio,
@@ -212,7 +212,7 @@ export class SolicitantesController {
 
     // Filtros a aplicar al conteo
     const filters = {
-      tipo_identificacion,
+      tipo_solicitante,
       discapacidad,
       vulnerabilidad,
       nivel_estudio,
@@ -224,7 +224,7 @@ export class SolicitantesController {
     const formattedSearchItem = searchItem ? searchItem.trim().toLowerCase() : undefined;
 
     // Obtenemos el conteo
-    const totalRecords = await this.solicitantesService.countAllSolicitantesWithFilters(filters, formattedSearchItem);
+    const totalRecords = await this.solicitantesService.countSolicitantesWithFilters(filters, formattedSearchItem);
 
     return {
       status: 200,
@@ -256,7 +256,7 @@ export class SolicitantesController {
 
     // Datos del objeto query
     const {
-      tipo_identificacion,
+      tipo_solicitante,
       discapacidad,
       vulnerabilidad,
       nivel_estudio,
@@ -266,7 +266,7 @@ export class SolicitantesController {
 
     // Filtros a aplicar a la consulta
     const filters = {
-      tipo_identificacion,
+      tipo_solicitante,
       discapacidad,
       vulnerabilidad,
       nivel_estudio,
@@ -284,6 +284,7 @@ export class SolicitantesController {
       'Apellidos': solicitante.apellidos,
       'Tipo Identificación': solicitante.tipo_identificacion,
       'Número Identificación': solicitante.numero_identificacion,
+      'Tipo de Solicitante': solicitante.tipo_solicitante,
       'Genero': solicitante.genero,
       'Fecha de Nacimiento': format(new UTCDate(solicitante.fecha_nacimiento), this.DATE_BIRTH_FORMAT),
       'Lugar de Nacimiento': solicitante.lugar_nacimiento,
@@ -309,6 +310,7 @@ export class SolicitantesController {
       { wch: 30 }, // Apellidos
       { wch: 25 }, // Tipo Identificación
       { wch: 25 }, // Número Identificación
+      { wch: 25 }, // Tipo de Solicitante
       { wch: 12 }, // Genero
       { wch: 25 }, // Fecha Nacimiento
       { wch: 35 }, // Lugar de Nacimiento
@@ -362,14 +364,14 @@ export class SolicitantesController {
   @ApiParam({ name: 'id', description: 'ID del solicitante', type: String })
   @ApiNotFoundResponse({ description: 'Solicitante no encontrado' }) 
   @ApiOkResponse({
-    description: 'Solicitante obtenido correctamente',
+    description: 'Información del solicitante obtenida correctamente',
     type: SolicitanteResponseDto
   })
   @Get(':id')
   async findOne(@Param() params: validateIdParamDto) {
 
     const { id } = params;
-    const { perfilSocioeconomico, ...solicitanteData } = await this.solicitantesService.findOneSolicitante(+id);
+    const { perfilSocioeconomico, ...solicitanteData } = await this.solicitantesService.getOneSolicitante(+id);
 
     // Formateamos las fecha de nacimiento antes de enviarla
     const zonedFechaNacimiento = new UTCDate(solicitanteData.fecha_nacimiento);
@@ -381,7 +383,7 @@ export class SolicitantesController {
 
     return {
       status: 200,
-      message: 'Solicitante obtenido correctamente',
+      message: 'Información del solicitante obtenida correctamente',
       data: formattedSolicitante
     };
 
@@ -393,7 +395,7 @@ export class SolicitantesController {
   @ApiNotFoundResponse({ description: 'Solicitante no encontrado' })
   @ApiBadRequestResponse({ description: 'Error de validación de datos' })
   @ApiOkResponse({
-    description: 'Solicitante actualizado correctamente',
+    description: 'Información del solicitante actualizada correctamente',
     type: GenericApiResponseDto
   }) 
   @Patch(':id')
@@ -416,7 +418,7 @@ export class SolicitantesController {
     );
     return {
       status: 200,
-      message: 'Solicitante actualizado correctamente',
+      message: 'Información del solicitante actualizada correctamente',
       data: null,
     };
 

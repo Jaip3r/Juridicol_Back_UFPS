@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { UpdateSolicitanteDto } from './dto/update-solicitante.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSolicitanteDto } from './dto/create-solicitante.dto';
-import { TipoIdentificacion } from './enum/tipoIdentificacion';
 import { Discapacidad } from './enum/discapacidad';
 import { Vulnerabilidad } from './enum/vulnerabilidad';
 import { NivelEstudio } from './enum/nivelEstudio';
@@ -10,6 +9,7 @@ import { Sisben } from './enum/sisben';
 import { Estrato } from './enum/estrato';
 import { Prisma } from '@prisma/client';
 import { buildWherePrismaClientClause } from '../common/utils/buildPrismaClientWhereClause';
+import { Tipo_Solicitante } from './enum/tipo_solicitante';
 
 
 @Injectable()
@@ -115,6 +115,11 @@ export class SolicitantesService {
 
     }
 
+    // Verificamos que, en caso de haber discapacidad, su valor tenga coherencia con la vulnerabilidad
+    if ((data.discapacidad !== Discapacidad.NONE && data.vulnerabilidad === Vulnerabilidad.NONE) || (data.vulnerabilidad === Vulnerabilidad.PDI && data.discapacidad === Discapacidad.NONE)) {
+      throw new BadRequestException('Si el solicitante presenta una discapacidad, debe asociarla con la vulnerabilidad correspondiente');
+    }
+
     // Datos para la creación del registro
     const solicitanteData = this.construirDatosSolicitante(data);
     const perfilSocioeconomicoData = this.construirDatosPerfilSocioeconomico(data);
@@ -132,11 +137,11 @@ export class SolicitantesService {
   }
 
 
-  /*---- findAllSolicitante method ------*/
+  /*---- getSolicitantesByFilters method ------*/
 
-  async findAllSolicitantes(
+  async getSolicitantesByFilters(
     filters: {
-      tipo_identificacion?: TipoIdentificacion;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -157,8 +162,8 @@ export class SolicitantesService {
 
     // Consultamos los solicitantes en base a al valor de los parametros
     const solicitantes = searchItem !== undefined && searchItem !== ''
-      ? await this.findAllSolicitantesWithQueryRaw(filters, order, pagination, searchItem)
-      : await this.findAllSolicitantesWithPrismaClient(filters, order, pagination);
+      ? await this.getSolicitantesWithQueryRaw(filters, order, pagination, searchItem)
+      : await this.getSolicitantesWithPrismaClient(filters, order, pagination);
 
     // Si no hay registros, devolvemos vacío
     if (solicitantes.length === 0) {
@@ -198,11 +203,11 @@ export class SolicitantesService {
   }
 
 
-  /*---- countAllSolicitantesWithFilters method ------*/
+  /*---- countSolicitantesWithFilters method ------*/
 
-  countAllSolicitantesWithFilters(
+  countSolicitantesWithFilters(
     filters: {
-      tipo_identificacion?: TipoIdentificacion;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -213,8 +218,8 @@ export class SolicitantesService {
   ) {
 
     return searchItem !== undefined && searchItem !== ''
-      ? this.countAllSolicitantesWithQueryRaw(filters, searchItem)
-      : this.countAllSolicitantesWithPrismaClient(filters);
+      ? this.countSolicitantesWithQueryRaw(filters, searchItem)
+      : this.countSolicitantesWithPrismaClient(filters);
 
   }
 
@@ -223,7 +228,7 @@ export class SolicitantesService {
 
   getInfoSolicitantesReport(
     filters: {
-      tipo_identificacion?: TipoIdentificacion;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -243,6 +248,7 @@ export class SolicitantesService {
         apellidos: true,
         tipo_identificacion: true,
         numero_identificacion: true,
+        tipo_solicitante: true,
         genero: true,
         fecha_nacimiento: true,
         lugar_nacimiento: true,
@@ -269,9 +275,9 @@ export class SolicitantesService {
   }
 
 
-  /*---- findOneSolicitante method ------*/
+  /*---- getOneSolicitante method ------*/
 
-  async findOneSolicitante(id: number) {
+  async getOneSolicitante(id: number) {
 
     // Obtenemos la info del solicitante en base a su identificador
     const solicitanteExists = await this.prisma.solicitante.findUnique({
@@ -284,6 +290,7 @@ export class SolicitantesService {
         apellidos: true,
         tipo_identificacion: true,
         numero_identificacion: true,
+        tipo_solicitante: true,
         genero: true,
         fecha_nacimiento: true,
         lugar_nacimiento: true,
@@ -319,7 +326,7 @@ export class SolicitantesService {
   async updateSolicitante(id: number, data: UpdateSolicitanteDto) {
 
     // Verificamos la identidad del solicitante
-    const solicitanteExists = await this.findOneSolicitante(id);
+    const solicitanteExists = await this.getOneSolicitante(id);
 
     // Verificamos la unicidad del numero de identificación si se esta actualizando
     if (
@@ -355,6 +362,11 @@ export class SolicitantesService {
 
     }
 
+    // Verificamos que, en caso de haber discapacidad, su valor tenga coherencia con la vulnerabilidad
+    if ((data.discapacidad !== Discapacidad.NONE && data.vulnerabilidad === Vulnerabilidad.NONE) || (data.vulnerabilidad === Vulnerabilidad.PDI && data.discapacidad === Discapacidad.NONE)) {
+      throw new BadRequestException('Si el solicitante presenta una discapacidad, debe asociarla con la vulnerabilidad correspondiente');
+    }
+
     // Preparar los datos para actualizar el perfil socioeconómico
     const solicitanteData = this.construirDatosSolicitante(data);
     const perfilSocioeconomicoData: Prisma.PerfilSocioEconomicoUpdateInput = this.construirDatosPerfilSocioeconomico(data);
@@ -373,11 +385,11 @@ export class SolicitantesService {
   }
 
 
-  /*---- findAllSolicitantesWithPrismaClient method ------*/
+  /*---- getSolicitantesWithPrismaClient method ------*/
 
-  private async findAllSolicitantesWithPrismaClient(
+  private async getSolicitantesWithPrismaClient(
     filters: {
-      tipo_identificacion?: TipoIdentificacion;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -416,6 +428,7 @@ export class SolicitantesService {
         numero_contacto: true,
         tipo_identificacion: true,
         numero_identificacion: true,
+        tipo_solicitante: true,
         discapacidad: true,
         vulnerabilidad: true,
         fecha_registro: true,
@@ -437,11 +450,11 @@ export class SolicitantesService {
   }
 
 
-  /*---- findAllSolicitantesWithQueryRaw method ------*/
+  /*---- getSolicitantesWithQueryRaw method ------*/
 
-  private async findAllSolicitantesWithQueryRaw(
+  private async getSolicitantesWithQueryRaw(
     filters: {
-      tipo_identificacion?: TipoIdentificacion;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -524,6 +537,7 @@ export class SolicitantesService {
         "Solicitante"."numero_contacto",
         "Solicitante"."tipo_identificacion",
         "Solicitante"."numero_identificacion",
+        "Solicitante"."tipo_solicitante",
         "Solicitante"."discapacidad",
         "Solicitante"."vulnerabilidad",
         "Solicitante"."fecha_registro",
@@ -550,11 +564,11 @@ export class SolicitantesService {
   }
 
 
-  /*---- countAllSolicitantesWithPrismaClient method ------*/
+  /*---- countSolicitantesWithPrismaClient method ------*/
 
-  private async countAllSolicitantesWithPrismaClient(
+  private async countSolicitantesWithPrismaClient(
     filters: {
-      tipo_identificacion?: TipoIdentificacion;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -576,11 +590,11 @@ export class SolicitantesService {
   }
 
 
-  /*---- countAllSolicitantesWithQueryRaw method ------*/
+  /*---- countSolicitantesWithQueryRaw method ------*/
 
-  private async countAllSolicitantesWithQueryRaw(
+  private async countSolicitantesWithQueryRaw(
     filters: {
-      tipo_identificacion?: TipoIdentificacion;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -614,6 +628,9 @@ export class SolicitantesService {
 
   // Util Methods
 
+
+  /*---- construirDatosSolicitante method ------*/
+
   private construirDatosSolicitante(data: CreateSolicitanteDto | UpdateSolicitanteDto) {
 
     return {
@@ -621,6 +638,7 @@ export class SolicitantesService {
       apellidos: data.apellidos,
       tipo_identificacion: data.tipo_identificacion,
       numero_identificacion: data.numero_identificacion,
+      tipo_solicitante: data.tipo_solicitante,
       genero: data.genero,
       fecha_nacimiento: data.fecha_nacimiento ? new Date(data.fecha_nacimiento) : undefined,
       lugar_nacimiento: data.lugar_nacimiento,
@@ -634,6 +652,9 @@ export class SolicitantesService {
 
   }
 
+
+  /*---- construirDatosPerfilSocioeconomico method ------*/
+
   private construirDatosPerfilSocioeconomico(data: CreateSolicitanteDto | UpdateSolicitanteDto) {
     return {
       nivel_estudio: data.nivel_estudio,
@@ -645,8 +666,11 @@ export class SolicitantesService {
     };
   }
 
+
+  /*---- buildSolicitanteWherePrismaClientClause method ------*/
+
   private buildSolicitanteWherePrismaClientClause(filters: {
-    tipo_identificacion?: TipoIdentificacion;
+    tipo_solicitante?: Tipo_Solicitante;
     discapacidad?: Discapacidad;
     vulnerabilidad?: Vulnerabilidad;
     nivel_estudio?: NivelEstudio;
@@ -656,7 +680,7 @@ export class SolicitantesService {
 
     // Aplicamos formato a los filtros 
     const formattedFilters = {
-      tipo_identificacion: filters.tipo_identificacion,
+      tipo_solicitante: filters.tipo_solicitante,
       discapacidad: filters.discapacidad,
       vulnerabilidad: filters.vulnerabilidad,
       perfilSocioeconomico: {
@@ -671,9 +695,12 @@ export class SolicitantesService {
 
   }
 
+
+  /*---- buildSolicitanteConditionsQueryRawClause method ------*/
+
   private buildSolicitanteConditionsQueryRawClause(
     filters: {
-      tipo_identificacion?: TipoIdentificacion;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -691,9 +718,9 @@ export class SolicitantesService {
     conditions.push(Prisma.sql`to_tsvector('spanish', lower("nombre") || ' ' || lower("apellidos")) @@ to_tsquery('spanish', ${searchQuery})`);
 
     // Añadimos los filtros adicionales si se da el caso
-    if (filters.tipo_identificacion) {
+    if (filters.tipo_solicitante) {
       conditions.push(
-        Prisma.sql`"Solicitante"."tipo_identificacion" = ${filters.tipo_identificacion}`
+        Prisma.sql`"Solicitante"."tipo_solicitante" = ${filters.tipo_solicitante}`
       );
     }
 

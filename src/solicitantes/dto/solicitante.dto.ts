@@ -26,6 +26,12 @@ export class SolicitanteDto {
         example: '13436742'
     })
     numero_identificacion: string;
+
+    @ApiProperty({
+        description: 'Tipo de solicitante',
+        example: 'Externo'
+    })
+    tipo_solicitante: string;
     
     @ApiProperty({
         description: 'Genero del solicitante',

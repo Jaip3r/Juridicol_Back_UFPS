@@ -11,6 +11,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { ActividadEconomica } from "../enum/actividadEconomica";
 import { Transform } from "class-transformer";
 import { IsIdentificacionValida } from "src/common/validation/IsIdentificacionValida";
+import { Tipo_Solicitante } from "../enum/tipo_solicitante";
 
 
 export class CreateSolicitanteDto {
@@ -55,6 +56,13 @@ export class CreateSolicitanteDto {
     })
     @IsIdentificacionValida({ message: 'Número de identificación no válido para el tipo de identificación especificado.' })
     numero_identificacion: string;
+
+    @ApiProperty({
+        description: 'Tipo de solicitante',
+        example: 'Externo'
+    })
+    @IsEnum(Tipo_Solicitante, { message: 'Tipo de solicitante no válido.' })
+    tipo_solicitante: Tipo_Solicitante;
 
     @ApiProperty({
         description: 'Fecha de nacimiento del solicitante',
