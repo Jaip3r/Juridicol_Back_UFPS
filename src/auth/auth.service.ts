@@ -30,7 +30,7 @@ export class AuthService {
     getProfileInfo(id: number) {
 
         // Retornamos la información del usuario en el sistema
-        return this.usersService.findOneUser(id);
+        return this.usersService.getOneUser(id);
 
     }
 
@@ -40,7 +40,7 @@ export class AuthService {
     register(data: RegisterDto) {
 
         // Retornamos el usuario registrado
-        return this.usersService.createUser(data);
+        return this.usersService.registerUser(data);
 
     }
 
@@ -50,7 +50,7 @@ export class AuthService {
     async login({ email, password }: LoginDto, res: Response) {
 
         // Buscamos al usuario por el email proporcionado
-        const userExists = await this.usersService.findOneUserByEmail(email);
+        const userExists = await this.usersService.getOneUserByEmail(email);
 
         if (!userExists || !(await bcrypt.compare(password, userExists.password)) || !userExists.activo) {
             throw new UnauthorizedException('Credenciales no válidas');
@@ -177,7 +177,7 @@ export class AuthService {
         }
 
         // Si el token es válido, generamos un nuevo access token
-        const user = await this.usersService.findOneUser(userInfo.user_id);
+        const user = await this.usersService.getOneUser(userInfo.user_id);
 
         const payload = { sub: user.id, username: user.email, rol: user.rol };
         const newAccessToken = await this.jwtService.signAsync(payload, { expiresIn: '30m' });
@@ -193,7 +193,7 @@ export class AuthService {
     async changePassword(username: string, oldPassword: string, newPassword: string) {
 
         // Obtenemos los datos del usuario
-        const user = await this.usersService.findOneUserByEmail(username);
+        const user = await this.usersService.getOneUserByEmail(username);
 
         if (!user) {
             throw new BadRequestException(`Usuario ${username} no identificado`);

@@ -15,9 +15,10 @@ export class UsersService {
     private readonly prisma: PrismaService
   ) {}
 
-  /*---- createUser method ------*/
 
-  async createUser(data: Prisma.UsuarioCreateInput) {
+  /*---- registerUser method ------*/
+
+  async registerUser(data: Prisma.UsuarioCreateInput) {
 
     // Verificamos la unicidad del código y el correo
     const existUser = await this.prisma.usuario.findFirst({
@@ -78,9 +79,9 @@ export class UsersService {
   }
 
 
-  /*---- findAllUsers method ------*/
+  /*---- getUsersByFilters method ------*/
 
-  async findAllUsers(
+  async getUsersByFilters(
     filters: {
       rol?: Rol;
       area_derecho?: AreaDerecho;
@@ -101,8 +102,8 @@ export class UsersService {
 
     // Consultamos los usuarios en base a al valor de los parametros
     const users = searchItem !== undefined && searchItem !== ''
-      ? await this.findAllUsersWithQueryRaw(filters, order, pagination, searchItem)
-      : await this.findAllUsersWithPrismaClient(filters, order, pagination);
+      ? await this.getUsersWithQueryRaw(filters, order, pagination, searchItem)
+      : await this.getUsersWithPrismaClient(filters, order, pagination);
 
     // Si no hay resultados, devolvemos vacío
     if (users.length === 0) {
@@ -143,9 +144,9 @@ export class UsersService {
   }
 
 
-  /*---- countAllUsersWithFilters method ------*/
+  /*---- countUsersWithFilters method ------*/
 
-  countAllUsersWithFilters(
+  countUsersWithFilters(
     filters: {
       rol?: Rol;
       area_derecho?: AreaDerecho;
@@ -156,13 +157,13 @@ export class UsersService {
   ) {
 
     return searchItem !== undefined && searchItem !== ''
-      ? this.countAllUsersWithQueryRaw(filters, searchItem)
-      : this.countAllUsersWithPrismaClient(filters);
+      ? this.countUsersWithQueryRaw(filters, searchItem)
+      : this.countUsersWithPrismaClient(filters);
 
   }
 
 
-  /*---- getInfoSolicitantesReport method ------*/
+  /*---- getInfoUsersReport method ------*/
 
   getInfoUsersReport(
     filters: {
@@ -200,9 +201,9 @@ export class UsersService {
   }
 
 
-  /*---- findOneUser method ------*/
+  /*---- getOneUser method ------*/
 
-  async findOneUser(id: number) {
+  async getOneUser(id: number) {
 
     // Buscamos al usuario por su identificador
     const userExists = await this.prisma.usuario.findUnique({
@@ -231,9 +232,9 @@ export class UsersService {
   }
 
 
-  /*---- findOneUserByEmail method ------*/
+  /*---- getOneUserByEmail method ------*/
 
-  async findOneUserByEmail(email: string) {
+  async getOneUserByEmail(email: string) {
 
     // Busca al usuario por el email proporcionado
     return this.prisma.usuario.findUnique({
@@ -249,7 +250,7 @@ export class UsersService {
 
   async updateUser(id: number, data: Prisma.UsuarioUpdateInput) {
 
-    const userExists = await this.findOneUser(id);
+    const userExists = await this.getOneUser(id);
 
     // Obtenemos los valores actuales de email y código, manejando los tipos posibles
     const newEmail = typeof data.email === 'string' ? data.email : data.email?.set;
@@ -365,7 +366,7 @@ export class UsersService {
 
   async disableUser(id: number) {
 
-    await this.findOneUser(id);
+    await this.getOneUser(id);
 
     // Deshabilitamos el acceso al sistema del usuario
     return this.prisma.usuario.update({
@@ -382,7 +383,7 @@ export class UsersService {
 
   async enableUser(id: number) {
 
-    const user = await this.findOneUser(id);
+    const user = await this.getOneUser(id);
 
     if (user.rol === 'profesor') {
 
@@ -415,9 +416,9 @@ export class UsersService {
   }
 
 
-  /*---- countAllUsersWithPrismaClient method ------*/
+  /*---- countUsersWithPrismaClient method ------*/
 
-  async countAllUsersWithPrismaClient(
+  async countUsersWithPrismaClient(
     filters: {
       rol?: Rol;
       area_derecho?: AreaDerecho;
@@ -441,7 +442,7 @@ export class UsersService {
 
   /*---- countAllUsersWithQueryRaw method ------*/
 
-  async countAllUsersWithQueryRaw(
+  async countUsersWithQueryRaw(
     filters: {
       rol?: Rol;
       area_derecho?: AreaDerecho;
@@ -489,9 +490,9 @@ export class UsersService {
   }
 
 
-  /*---- findAllUsersWithPrismaClient method ------*/
+  /*---- getUsersWithPrismaClient method ------*/
 
-  private async findAllUsersWithPrismaClient(
+  private async getUsersWithPrismaClient(
     filters: {
       rol?: Rol;
       area_derecho?: AreaDerecho;
@@ -543,9 +544,9 @@ export class UsersService {
   }
 
 
-  /*---- findAllUsersWithQueryRaw method ------*/
+  /*---- getUsersWithQueryRaw method ------*/
 
-  private async findAllUsersWithQueryRaw(
+  private async getUsersWithQueryRaw(
     filters: {
       rol?: Rol;
       area_derecho?: AreaDerecho;

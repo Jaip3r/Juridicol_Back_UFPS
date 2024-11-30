@@ -41,7 +41,7 @@ export class UsersController {
   })
   @ApiBadRequestResponse({ description: 'Error de validación de datos' })
   @Get()
-  async findAll(
+  async getUsers(
     @Query() query: UsersQueryDto
   ) {
 
@@ -84,7 +84,7 @@ export class UsersController {
       users,
       nextCursor: nextCursorDate,
       prevCursor: newPrevCursorDate,
-    } = await this.usersService.findAllUsers(filters, order, pagination, formattedSearchItem);
+    } = await this.usersService.getUsersByFilters(filters, order, pagination, formattedSearchItem);
 
     // Formatear las fechas antes de enviarlas al cliente
     const formattedUsers = users.map(user => {
@@ -142,7 +142,7 @@ export class UsersController {
     const formattedSearchItem = searchItem ? searchItem.trim().toLowerCase() : undefined;
 
     // Obtenemos el conteo
-    const totalRecords = await this.usersService.countAllUsersWithFilters(filters, formattedSearchItem);
+    const totalRecords = await this.usersService.countUsersWithFilters(filters, formattedSearchItem);
 
     return {
       status: 200,
@@ -166,7 +166,7 @@ export class UsersController {
     }
   })
   @Get('/report')
-  async reportSolicitantes(
+  async reportUsers(
     @Query() query: UsersQueryDto,
     @ActorUser() { sub, username, rol: userRole }: ActorUserInterface,
     @Res() res: Response
@@ -204,7 +204,7 @@ export class UsersController {
       'Area de derecho': usuario.area_derecho,
       'Grupo': usuario.grupo,
       'Fecha de registro': format(new TZDate(usuario.fecha_registro, this.TIME_ZONE), this.DATE_FORMAT),
-      'Activo': usuario.activo
+      'Activo': usuario.activo ? 'SI' : 'NO'
 
     }));
 
@@ -219,7 +219,7 @@ export class UsersController {
       { wch: 15 }, // Area de derecho
       { wch: 10 }, // Grupo 
       { wch: 25 }, // Fecha de registro
-      { wch: 15 } // Activo
+      { wch: 10 } // Activo
     ];
 
     // Generamos el archivo
@@ -295,10 +295,10 @@ export class UsersController {
   @ApiOkResponse({ description: 'Usuario obtenido correctamente', type: UserResponseDto })
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
   @Get(':id')
-  async findOne(@Param() params: validateIdParamDto) {
+  async findOneUserById(@Param() params: validateIdParamDto) {
 
     const { id } = params;
-    const user = await this.usersService.findOneUser(+id);
+    const user = await this.usersService.getOneUser(+id);
     return {
       status: 200,
       message: 'Usuario obtenido correctamente',
@@ -315,7 +315,7 @@ export class UsersController {
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
   @ApiBadRequestResponse({ description: 'Error de validación de datos' })
   @Patch(':id')
-  async update(@Param() params: validateIdParamDto,
+  async updateInfoUser(@Param() params: validateIdParamDto,
     @Body() updateUserDto: UpdateUserDto,
     @ActorUser() { sub, username, rol }: ActorUserInterface
   ) {
@@ -342,7 +342,7 @@ export class UsersController {
   @ApiOkResponse({ description: 'Credenciales de usuario habilitadas correctamente', type: GenericApiResponseDto })
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
   @Patch('/enable/:id')
-  async enable(@Param() params: validateIdParamDto,
+  async enableCredentials(@Param() params: validateIdParamDto,
     @ActorUser() { sub, username, rol }: ActorUserInterface
   ) {
 
@@ -368,7 +368,7 @@ export class UsersController {
   @ApiOkResponse({ description: 'Credenciales de usuario inhabilitadas correctamente', type: GenericApiResponseDto })
   @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
   @Patch('/disable/:id')
-  async disable(@Param() params: validateIdParamDto, @ActorUser() { sub, username, rol }: ActorUserInterface) {
+  async disableCredentials(@Param() params: validateIdParamDto, @ActorUser() { sub, username, rol }: ActorUserInterface) {
 
     const { id } = params;
     const deletedUser = await this.usersService.disableUser(+id);

@@ -42,6 +42,7 @@ export class RegisterDto {
     })
     @IsEmail({}, { message: "Favor proporcionar una dirección de correo válida." })
     @Matches(/^[a-zA-Z0-9._%+-]+@ufps\.edu\.co$/, { message: "El correo debe pertenecer al dominio @ufps.edu.co." })
+    @MaxLength(60, { message: "El correo no debe sobrepasar los 60 carácteres" })
     email: string;
 
     @ApiProperty({
