@@ -16,24 +16,32 @@ export function IsIdentificacionValida(validationOptions?: ValidationOptions) {
 
                     // Obtenemos el valor de la propiedad a validar
                     const { tipo_identificacion } = args.object as any;
-                    
-                    // Validación para tipos que deben ser solo números y entre 8-15 dígitos
-                    if (
-                        ['Cédula de ciudadanía', 'Cédula de extranjería', 'Registro civil de nacimiento', 
-                         'Permiso especial de permanencia', 'Libreta militar'].includes(tipo_identificacion)
-                    ) {
-                        return typeof value === 'string' &&
-                               /^\d+$/.test(value) && // Solo dígitos
-                               value.length >= 8 && value.length <= 15;
-                    }
-                    
-                    // Validación para tipos que deben ser cadenas no vacías
-                    if (['Pasaporte', 'VISA'].includes(tipo_identificacion)) {
-                        return typeof value === 'string' && value.trim().length > 0;
-                    }
 
-                    // Otros tipos de identificación 
-                    return true;
+                    switch(tipo_identificacion) {
+                        case 'Cédula de ciudadanía':
+                            return typeof value === 'string' && /^\d+$/.test(value) 
+                                    && value.length >= 8 && value.length <= 10
+                        case 'Cédula de extranjería':
+                            return typeof value === 'string' && /^\d+$/.test(value) 
+                                    && value.length >= 6 && value.length <= 15
+                        case 'Pasaporte':
+                            return typeof value === 'string' && /^[A-Za-z0-9]+$/.test(value) 
+                                    && value.trim().length >= 5 && value.trim().length <= 15
+                        case 'Registro civil de nacimiento':
+                            return typeof value === 'string' && /^\d+$/.test(value) 
+                                    && value.length === 10
+                        case 'Permiso especial de permanencia':
+                            return typeof value === 'string' && /^[A-Za-z0-9]+$/.test(value) 
+                                    && value.trim().length === 10
+                        case 'VISA':
+                            return typeof value === 'string' && /^[A-Za-z0-9]+$/.test(value) 
+                                    && value.trim().length >= 8 && value.trim().length <= 15
+                        case 'Libreta militar':
+                            return typeof value === 'string' && /^\d+$/.test(value) 
+                            && value.length >= 8 && value.length <= 10
+                        default:
+                            return true; // Otros tipos de identificación
+                    }
 
                 },
                 defaultMessage(args: ValidationArguments) { // Define el mensaje de error por defecto
@@ -41,15 +49,7 @@ export function IsIdentificacionValida(validationOptions?: ValidationOptions) {
                     // Obtenemos el valor de la propiedad a validar
                     const { tipo_identificacion } = args.object as any;
 
-                    if (
-                        ['Cédula de ciudadanía', 'Cédula de extranjería', 'Registro civil de nacimiento', 
-                         'Permiso especial de permanencia', 'Libreta militar'].includes(tipo_identificacion)
-                    ) {
-                        return 'El número de identificación debe contener solo dígitos y tener entre 8 y 15 digitos.';
-                    } else if (['Pasaporte', 'VISA'].includes(tipo_identificacion)) {
-                        return 'El número de identificación es requerido y debe ser una cadena de caracteres.';
-                    }
-                    return 'Número de identificación inválido.';
+                    return `Número de identificación inválido para el tipo de identificación ${tipo_identificacion}.`;
 
                 }
 
