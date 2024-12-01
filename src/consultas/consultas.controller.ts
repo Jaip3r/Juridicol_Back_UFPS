@@ -66,132 +66,7 @@ export class ConsultasController {
   async getConsultas(
     @Query() query: ConsultaQueryDTO
   ) {
-
-    // Datos del objeto query
-    const {
-      area_derecho,
-      tipo_consulta,
-      estado,
-      discapacidad,
-      vulnerabilidad,
-      nivel_estudio,
-      sisben,
-      estrato,
-      limite,
-      order,
-      cursor,
-      prevCursor,
-      searchItem
-    } = query;
-
-    // Filtros a aplicar a la consulta
-    const filters = {
-      area_derecho,
-      tipo_consulta,
-      estado,
-      discapacidad,
-      vulnerabilidad,
-      nivel_estudio,
-      sisben,
-      estrato
-    };
-
-    // Parseamos el cursor recibido
-    const parsedCursor = cursor
-      ? +cursor
-      : prevCursor
-        ? +prevCursor
-        : undefined;
-    
-    // Determinar la dirección de la paginación - si es none quiere decir que estamos en la primera página
-    const direction: 'next' | 'prev' | 'none' = cursor
-      ? 'next'
-      : prevCursor
-        ? 'prev'
-        : 'none';
-      
-    // Objeto de configuración de paginación
-    const pagination = {
-      cursor: parsedCursor ? { id: parsedCursor } : undefined,
-      limit: this.PAGE_SIZE,
-      direction
-    };
-
-    // Cadena para busqueda basada en texto
-    const formattedSearchItem = searchItem ? searchItem.trim().toLowerCase() : undefined;
-
-    const {
-      consultas,
-      nextCursor: nextCursorId,
-      prevCursor: prevCursorId
-    } 
-    = await this.consultasService.getConsultasByFilters(
-      filters,
-      limite,
-      order,
-      pagination,
-      formattedSearchItem
-    )
-    
-    // Formateamos las fechas antes de enviarlas
-    const formattedConsultas = consultas.map((consulta) => {
-
-      const zonedFecha_registro = new TZDate(consulta.fecha_registro, this.TIME_ZONE);
-      const formattedFecha_registro = format(zonedFecha_registro, this.DATE_FORMAT);
-
-      // Si recibimos claves anidadas, combinamos todo en un objeto principal
-      const formattedConsulta = (consulta.solicitante && consulta.estudiante_registro)
-        ? {
-
-            ...consulta,
-            fecha_registro: formattedFecha_registro,
-            solicitante_nombre: consulta.solicitante.nombre, 
-            solicitante_apellidos: consulta.solicitante.apellidos, 
-            solicitante_tipo_identificacion: consulta.solicitante.tipo_identificacion, 
-            solicitante_numero_identificacion: consulta.solicitante.numero_identificacion, 
-            estudiante_registro_nombres: consulta.estudiante_registro.nombres, 
-            estudiante_registro_apellidos: consulta.estudiante_registro.apellidos, 
-            estudiante_registro_codigo: consulta.estudiante_registro.codigo,
-            ...(consulta.fecha_asignacion && {
-              fecha_asignacion: format(new TZDate(consulta.fecha_asignacion, this.TIME_ZONE), this.DATE_FORMAT)
-            }),
-            ...(consulta.estudiante_asignado && {
-                estudiante_asignado_nombres: consulta.estudiante_asignado.nombres,
-                estudiante_asignado_apellidos: consulta.estudiante_asignado.apellidos,
-                estudiante_asignado_codigo: consulta.estudiante_asignado.codigo,
-            }),
-            ...(consulta.fecha_finalizacion && {
-                fecha_finalizacion: format(new TZDate(consulta.fecha_finalizacion, this.TIME_ZONE), this.DATE_FORMAT)
-            })
-
-          }
-        : {
-
-            ...consulta,
-            fecha_registro: formattedFecha_registro,
-            fecha_asignacion: consulta.fecha_asignacion ? format(new TZDate(consulta.fecha_asignacion, this.TIME_ZONE), this.DATE_FORMAT) : null,
-            fecha_finalizacion: consulta.fecha_finalizacion ? format(new TZDate(consulta.fecha_finalizacion, this.TIME_ZONE), this.DATE_FORMAT) : null,
-            
-          }
-
-      // Eliminamos las propiedades anidadas del objeto formateado solo si estan presentes
-      if (consulta.solicitante) delete formattedConsulta.solicitante;
-      if (consulta.estudiante_registro) delete formattedConsulta.estudiante_registro;
-      if (consulta.estudiante_asignado) { delete formattedConsulta.estudiante_asignado; }
-
-      return formattedConsulta
-
-    });
-
-    return {
-      status: 200,
-      message: 'Consultas obtenidas correctamente',
-      data: formattedConsultas,
-      nextCursor: nextCursorId ? nextCursorId : null, // Devuelve el cursor para la siguiente página
-      prevCursor: prevCursorId ? prevCursorId : null, // Devuelve el cursor para la anterior página
-      pageSize: this.PAGE_SIZE
-    };
-
+    return this._getConsultasCommon(query);
   }
 
 
@@ -207,6 +82,7 @@ export class ConsultasController {
       tipo_consulta,
       estado,
       discapacidad,
+      tipo_solicitante,
       vulnerabilidad,
       nivel_estudio,
       sisben,
@@ -220,6 +96,7 @@ export class ConsultasController {
       area_derecho,
       tipo_consulta,
       estado,
+      tipo_solicitante,
       discapacidad,
       vulnerabilidad,
       nivel_estudio,
@@ -244,7 +121,7 @@ export class ConsultasController {
 
   @Authorization([Rol.ADMIN])
   @Get('/report')
-  async reportSolicitantes(
+  async reportConsultas(
     @Query() query: ConsultaQueryDTO,
     @ActorUser() { sub, username, rol }: ActorUserInterface,
     @Res() res: Response
@@ -255,6 +132,7 @@ export class ConsultasController {
       area_derecho,
       tipo_consulta,
       estado,
+      tipo_solicitante,
       discapacidad,
       vulnerabilidad,
       nivel_estudio,
@@ -269,6 +147,7 @@ export class ConsultasController {
       area_derecho,
       tipo_consulta,
       estado,
+      tipo_solicitante,
       discapacidad,
       vulnerabilidad,
       nivel_estudio,
@@ -286,6 +165,7 @@ export class ConsultasController {
       'Tipo de consulta': consulta.tipo_consulta === 'asesoria_verbal' ? 'Asesoria verbal' : 'Consulta',
       'Área de derecho': consulta.area_derecho,
       'Estado': consulta.estado,
+      'Tipo de solicitante': consulta.solicitante.tipo_solicitante,
       'Nombre solicitante': consulta.solicitante.nombre,
       'Apellidos solicitante': consulta.solicitante.apellidos,
       'Tipo de identificación': consulta.solicitante.tipo_identificacion,
@@ -316,6 +196,7 @@ export class ConsultasController {
       { wch: 20 }, // Tipo de consulta
       { wch: 20 }, // Área de derecho
       { wch: 15 }, // Estado
+      { wch: 20 }, // Tipo de solicitante
       { wch: 30 }, // Nombre solicitante
       { wch: 30 }, // Apellidos solicitante
       { wch: 25 }, // Tipo de identificación
@@ -368,8 +249,91 @@ export class ConsultasController {
 
 
   @Authorization([Rol.ADMIN])
+  @Get('/solicitante/:id')
+  async getConsultasSolicitante(
+    @Query() query: ConsultaQueryDTO,
+    @Param() params: validateIdParamDto
+  ) {
+
+    // Identificador del solicitante
+    const { id } = params;
+
+    return this._getConsultasCommon(query, { solicitante_id: +id });
+
+  }
+
+
+  @Authorization([Rol.ADMIN])
+  @Get('/count/solicitante/:id')
+  async countConsultasSolicitante(
+    @Query() query: ConsultaQueryDTO,
+    @Param() params: validateIdParamDto
+  ) {
+
+    // Identificador del solicitante
+    const { id } = params;
+
+    // Datos del objeto query
+    const {
+      area_derecho,
+      tipo_consulta,
+      estado
+    } = query;
+
+    // Filtros a aplicar a la consulta
+    const filters = {
+      area_derecho,
+      tipo_consulta,
+      estado,
+      solicitante_id: +id
+    };
+
+    // Obtenemos el conteo
+    const totalRecords = await this.consultasService.countConsultasByFilters(filters);
+
+    return {
+      status: 200,
+      message: 'Conteo de consultas realizado correctamente',
+      totalRecords: totalRecords ? totalRecords : 0
+    };
+
+  }
+
+
+  @Post('/retry/upload/:id')
+  @UseInterceptors(FilesInterceptor('anexos', 6))
+  async retryUploadAnexosConsulta(
+    @Param() params: validateIdParamDto,
+    @UploadedFiles(
+      new ParseFilePipeBuilder()
+        .addValidator(
+          new CustomUploadFileTypeValidator({
+            fileType: ['application/pdf']
+          })
+        )
+        .addMaxSizeValidator({ maxSize: 2 * 1024 * 1024, message: 'El tamaño máximo permitido por archivo es de 2MB' })
+        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY, fileIsRequired: true })
+    ) anexos: Array<Express.Multer.File>,
+    @ActorUser() actorUser: ActorUserInterface
+  ) {
+
+    // Identificador de la consulta
+    const { id } = params;
+
+    await this.consultasService.retryFileUpload(+id, actorUser, anexos);
+
+    return {
+      status: 200,
+      message: 'Archivos añadidos correctamente a la consulta',
+      data: null
+    };
+
+  }
+
+
+  @Authorization([Rol.ADMIN])
   @Get(':id')
-  async findOne(
+  async getConsultaById(
     @Param() params: validateIdParamDto,
     @ActorUser() { sub, username, rol }: ActorUserInterface
   ) {
@@ -391,6 +355,7 @@ export class ConsultasController {
     const formattedConsulta = {
       ...consulta,
       fecha_registro: formattedFecha_registro,
+      solicitante_tipo: consulta.solicitante.tipo_solicitante,
       solicitante_nombre: consulta.solicitante.nombre, 
       solicitante_apellidos: consulta.solicitante.apellidos, 
       solicitante_tipo_identificacion: consulta.solicitante.tipo_identificacion, 
@@ -424,6 +389,139 @@ export class ConsultasController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateConsultaDto: UpdateConsultaDto) {
     return this.consultasService.update(+id, updateConsultaDto);
+  }
+
+
+  // Util methods
+
+  private async _getConsultasCommon(
+    query: ConsultaQueryDTO,
+    additionalFilters?: any
+  ){
+
+    // Extraemos los parametros de consulta
+    const {
+      area_derecho,
+      tipo_consulta,
+      estado,
+      tipo_solicitante,
+      discapacidad,
+      vulnerabilidad,
+      nivel_estudio,
+      sisben,
+      estrato,
+      limite,
+      order,
+      cursor,
+      prevCursor,
+      searchItem
+    } = query;
+
+    // Construimos los filtros
+    const filters = {
+      area_derecho,
+      tipo_consulta,
+      estado,
+      tipo_solicitante,
+      discapacidad,
+      vulnerabilidad,
+      nivel_estudio,
+      sisben,
+      estrato,
+      ...additionalFilters
+    };
+
+    // Parseamos el cursor y determinamos la dirección de paginación
+    const parsedCursor = cursor
+    ? +cursor
+    : prevCursor
+      ? +prevCursor
+      : undefined;
+
+    const direction: 'next' | 'prev' | 'none' = cursor
+      ? 'next'
+      : prevCursor
+        ? 'prev'
+        : 'none';
+
+    // Construimos la configuración de paginación
+    const pagination = {
+      cursor: parsedCursor ? { id: parsedCursor } : undefined,
+      limit: this.PAGE_SIZE,
+      direction
+    };
+
+    // Formateamos el término de busqueda por texto
+    const formattedSearchItem = searchItem ? searchItem.trim().toLowerCase() : undefined;
+
+    // Obtenemos las consultas
+    const {
+      consultas,
+      nextCursor: nextCursorId,
+      prevCursor: prevCursorId
+    } = await this.consultasService.getConsultasByFilters(
+      filters,
+      limite ? limite : undefined,
+      order,
+      pagination,
+      formattedSearchItem
+    );
+
+    // Formateamos las consultas recibidas
+    const formattedConsultas = consultas.map((consulta) => {
+
+      const zonedFecha_registro = new TZDate(consulta.fecha_registro, this.TIME_ZONE);
+      const formattedFecha_registro = format(zonedFecha_registro, this.DATE_FORMAT);
+  
+      const formattedConsulta = (consulta.solicitante && consulta.estudiante_registro)
+        ? {
+            ...consulta,
+            fecha_registro: formattedFecha_registro,
+            solicitante_tipo: consulta.solicitante.tipo_solicitante,
+            solicitante_nombre: consulta.solicitante.nombre, 
+            solicitante_apellidos: consulta.solicitante.apellidos, 
+            solicitante_tipo_identificacion: consulta.solicitante.tipo_identificacion, 
+            solicitante_numero_identificacion: consulta.solicitante.numero_identificacion, 
+            estudiante_registro_nombres: consulta.estudiante_registro.nombres, 
+            estudiante_registro_apellidos: consulta.estudiante_registro.apellidos, 
+            estudiante_registro_codigo: consulta.estudiante_registro.codigo,
+            ...(consulta.fecha_asignacion && {
+              fecha_asignacion: format(new TZDate(consulta.fecha_asignacion, this.TIME_ZONE), this.DATE_FORMAT)
+            }),
+            ...(consulta.estudiante_asignado && {
+                estudiante_asignado_nombres: consulta.estudiante_asignado.nombres,
+                estudiante_asignado_apellidos: consulta.estudiante_asignado.apellidos,
+                estudiante_asignado_codigo: consulta.estudiante_asignado.codigo,
+            }),
+            ...(consulta.fecha_finalizacion && {
+                fecha_finalizacion: format(new TZDate(consulta.fecha_finalizacion, this.TIME_ZONE), this.DATE_FORMAT)
+            })
+          }
+        : {
+            ...consulta,
+            fecha_registro: formattedFecha_registro,
+            fecha_asignacion: consulta.fecha_asignacion ? format(new TZDate(consulta.fecha_asignacion, this.TIME_ZONE), this.DATE_FORMAT) : null,
+            fecha_finalizacion: consulta.fecha_finalizacion ? format(new TZDate(consulta.fecha_finalizacion, this.TIME_ZONE), this.DATE_FORMAT) : null,
+          };
+  
+      if (consulta.solicitante) delete formattedConsulta.solicitante;
+      if (consulta.estudiante_registro) delete formattedConsulta.estudiante_registro;
+      if (consulta.estudiante_asignado) delete formattedConsulta.estudiante_asignado;
+  
+      return formattedConsulta;
+
+    });
+
+    // Returnamos la respuesta
+    return {
+      status: 200,
+      message: 'Consultas obtenidas correctamente',
+      data: formattedConsultas,
+      nextCursor: nextCursorId ? nextCursorId : null,
+      prevCursor: prevCursorId ? prevCursorId : null,
+      pageSize: this.PAGE_SIZE
+    };
+
   }
 
 }

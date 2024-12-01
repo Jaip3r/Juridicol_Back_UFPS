@@ -93,6 +93,7 @@ export class CreateConsultaDto extends CreateSolicitanteDto {
     @IsNotEmpty({ message: 'Los hechos de la consulta son requeridos' })
     @IsString()
     @MinLength(5, { message: 'Los hechos de la consulta deben contener como mínimo 5 carácteres' })
+    @MaxLength(800, { message: 'Los hechos de la consulta deben contener como máximo 800 carácteres' })
     hechos: string;
 
     @ApiProperty({
@@ -102,6 +103,7 @@ export class CreateConsultaDto extends CreateSolicitanteDto {
     @IsNotEmpty({ message: 'Las pretensiones de la consulta son requeridas' })
     @IsString()
     @MinLength(5, { message: 'Las pretensiones de la consulta deben contener como mínimo 5 carácteres' })
+    @MaxLength(800, { message: 'Las pretensiones de la consulta deben contener como máximo 800 carácteres' })
     pretensiones: string;
 
     @ApiProperty({
@@ -111,6 +113,7 @@ export class CreateConsultaDto extends CreateSolicitanteDto {
     @IsNotEmpty({ message: 'Las observaciones de la consulta son requeridas' })
     @IsString()
     @MinLength(5, { message: 'Las observaciones de la consulta deben contener como mínimo 5 carácteres' })
+    @MaxLength(800, { message: 'Las observaciones de la consulta deben contener como máximo 800 carácteres' })
     observaciones: string;
 
     @ApiProperty({

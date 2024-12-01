@@ -269,7 +269,8 @@ export class SolicitantesService {
             nivel_ingreso_economico: true
           }
         }
-      }
+      },
+      orderBy: [ { fecha_registro: 'desc' } ]
     });
 
   }

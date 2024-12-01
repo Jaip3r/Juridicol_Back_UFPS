@@ -8,6 +8,7 @@ import { Vulnerabilidad } from "src/solicitantes/enum/vulnerabilidad";
 import { NivelEstudio } from "src/solicitantes/enum/nivelEstudio";
 import { Estrato } from "src/solicitantes/enum/estrato";
 import { Sisben } from "src/solicitantes/enum/sisben";
+import { Tipo_Solicitante } from "src/solicitantes/enum/tipo_solicitante";
 
 
 export class ConsultaQueryDTO {
@@ -35,6 +36,14 @@ export class ConsultaQueryDTO {
     @IsOptional()
     @IsEnum(EstadoConsulta, { message: "Estado de consulta no válido" })
     estado?: EstadoConsulta;
+
+    @ApiProperty({
+        description: "Tipo de solicitante",
+        example: "Externo"
+    })
+    @IsOptional()
+    @IsEnum(Tipo_Solicitante, { message: "Tipo de solicitante no válido" })
+    tipo_solicitante: Tipo_Solicitante
 
     @ApiProperty({
         description: "Discapacidad del solicitante",

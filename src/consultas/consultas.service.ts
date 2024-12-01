@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -16,6 +16,8 @@ import { EstadoConsulta } from './enum/estadoConsulta';
 import { buildWherePrismaClientClause } from '../common/utils/buildPrismaClientWhereClause';
 import { SelectConsultaObject } from './interface/select-consulta';
 import { endOfDay, startOfDay } from 'date-fns';
+import { Tipo_Solicitante } from 'src/solicitantes/enum/tipo_solicitante';
+import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
 
 
 @Injectable()
@@ -32,14 +34,17 @@ export class ConsultasService {
 
   async registerConsulta(data: CreateConsultaDto, userId: number, anexos: Array<Express.Multer.File>) {
 
+    // En caso de no proporcionar ningún anexo
     if (!anexos || (anexos && anexos.length === 0)) {
       throw new BadRequestException('Se debe adjuntar como mínimo el soporte de la recepción de la consulta');
     }
 
+    // En caso de ser un proceso de asesoria verbal solo se admite la carga de 1 solo archivo
     if (data.tipo_consulta === TipoConsulta.asesoria_verbal && anexos.length > 1) {
       throw new BadRequestException('Solo se permiten la carga de 1 anexo para procesos de tipo asesoria');
     }
 
+    // Verificamos que, en caso de haber discapacidad, su valor tenga coherencia con la vulnerabilidad
     if ((data.discapacidad !== Discapacidad.NONE && data.vulnerabilidad === Vulnerabilidad.NONE) || (data.vulnerabilidad === Vulnerabilidad.PDI && data.discapacidad === Discapacidad.NONE)) {
       throw new BadRequestException('Si el solicitante presenta una discapacidad, debe asociarla con la vulnerabilidad correspondiente');
     }
@@ -115,13 +120,14 @@ export class ConsultasService {
     // Llevamos a cabo la carga de archivos
     try {
 
-      await this.archivosService.uploadFiles(anexos, consulta.id);
+      await this.archivosService.uploadFiles(anexos, consulta.id, consulta.radicado);
       
     } catch (error) {
 
-      throw new InternalServerErrorException(
-        'La consulta se registró, pero ocurrió un error al subir los archivos. Por favor, intente subirlos nuevamente.'
-      );
+      throw new InternalServerErrorException({
+          message: 'Consulta registrada, pero ocurrió un error al subir los archivos. Por favor, intente subirlos nuevamente.',
+          consultaId: consulta.id
+      });
       
     }
 
@@ -137,11 +143,13 @@ export class ConsultasService {
       area_derecho?: AreaDerecho;
       tipo_consulta?: TipoConsulta;
       estado?: EstadoConsulta;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
       sisben?: Sisben;
       estrato?: Estrato;
+      solicitante_id?: number;
     },
     limite: 'diaria' | 'global' = 'global',
     order: 'asc' | 'desc' = 'desc',
@@ -206,11 +214,13 @@ export class ConsultasService {
       area_derecho?: AreaDerecho;
       tipo_consulta?: TipoConsulta;
       estado?: EstadoConsulta;
+      tipo_solicitante?: Tipo_Solicitante
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
       sisben?: Sisben;
       estrato?: Estrato;
+      solicitante_id?: number;
     },
     limite: 'diaria' | 'global' = 'global',
     searchItem?: string
@@ -230,6 +240,7 @@ export class ConsultasService {
       area_derecho?: AreaDerecho;
       tipo_consulta?: TipoConsulta;
       estado?: EstadoConsulta;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -297,6 +308,7 @@ export class ConsultasService {
         fecha_finalizacion: true,
         solicitante: {
           select: {
+            tipo_solicitante: true,
             nombre: true,
             apellidos: true,
             tipo_identificacion: true,
@@ -324,6 +336,35 @@ export class ConsultasService {
     if (!consultaExists) throw new NotFoundException("Consulta no identificada");
 
     return consultaExists;
+
+  }
+
+
+  async retryFileUpload(consultaId: number, actorUser: ActorUserInterface, anexos: Array<Express.Multer.File>) {
+
+    // Verificamos que la consulta existe
+    const consulta = await this.prisma.consulta.findUnique({
+      where: { id: consultaId },
+      select: { radicado: true, id_estudiante_registro: true }
+    });
+
+    if (!consulta) {
+      throw new NotFoundException('Consulta no identificada');
+    }
+
+    // Verificamos los permisos del usuario
+    if (consulta.id_estudiante_registro !== actorUser.sub) {
+      throw new ForbiddenException('No tiene permiso para modificar esta consulta');
+    }
+
+    // Realizamos la carga de los archivos
+    try {
+      await this.archivosService.uploadFiles(anexos, consultaId, consulta.radicado);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Ocurrió un error al subir los archivos. Por favor, intente nuevamente.'
+      );
+    }
 
   }
 
@@ -427,11 +468,13 @@ export class ConsultasService {
       area_derecho?: AreaDerecho;
       tipo_consulta?: TipoConsulta;
       estado?: EstadoConsulta;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
       sisben?: Sisben;
       estrato?: Estrato;
+      solicitante_id?: number;
     },
     limite: 'diaria' | 'global' = 'global',
     order: 'asc' | 'desc' = 'desc',
@@ -487,6 +530,7 @@ export class ConsultasService {
       area_derecho?: AreaDerecho;
       tipo_consulta?: TipoConsulta;
       estado?: EstadoConsulta;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -574,6 +618,7 @@ export class ConsultasService {
         "Consulta"."fecha_registro",
         "Consulta"."fecha_asignacion",
         "Consulta"."fecha_finalizacion",
+        "Solicitante"."tipo_solicitante" AS "solicitante_tipo",
         "Solicitante"."nombre" AS "solicitante_nombre",
         "Solicitante"."apellidos" AS "solicitante_apellidos",
         "Solicitante"."tipo_identificacion" AS "solicitante_tipo_identificacion",
@@ -616,11 +661,13 @@ export class ConsultasService {
       area_derecho?: AreaDerecho;
       tipo_consulta?: TipoConsulta;
       estado?: EstadoConsulta;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
       sisben?: Sisben;
       estrato?: Estrato;
+      solicitante_id?: number;
     },
     limite: 'diaria' | 'global' = 'global'
   ) {
@@ -652,6 +699,7 @@ export class ConsultasService {
       area_derecho?: AreaDerecho;
       tipo_consulta?: TipoConsulta;
       estado?: EstadoConsulta;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -703,11 +751,13 @@ export class ConsultasService {
       area_derecho?: AreaDerecho;
       tipo_consulta?: TipoConsulta;
       estado?: EstadoConsulta;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
       sisben?: Sisben;
       estrato?: Estrato;
+      solicitante_id?: number;
     },
     start_today?: string,
     end_today?: string
@@ -718,11 +768,13 @@ export class ConsultasService {
       area_derecho: filters.area_derecho,
       tipo_consulta: filters.tipo_consulta,
       estado: filters.estado,
+      id_solicitante: filters.solicitante_id,
       fecha_registro: {
         gte: start_today,
         lt: end_today
       },
       solicitante: {
+        tipo_solicitante: filters.tipo_solicitante,
         discapacidad: filters.discapacidad,
         vulnerabilidad: filters.vulnerabilidad,
         perfilSocioeconomico: {
@@ -751,6 +803,7 @@ export class ConsultasService {
       fecha_registro: true, 
       solicitante: { 
         select: { 
+          tipo_solicitante: true, 
           nombre: true, 
           apellidos: true, 
           tipo_identificacion: true, 
@@ -807,6 +860,7 @@ export class ConsultasService {
       area_derecho?: AreaDerecho;
       tipo_consulta?: TipoConsulta;
       estado?: EstadoConsulta;
+      tipo_solicitante?: Tipo_Solicitante;
       discapacidad?: Discapacidad;
       vulnerabilidad?: Vulnerabilidad;
       nivel_estudio?: NivelEstudio;
@@ -852,6 +906,12 @@ export class ConsultasService {
     }
 
     // Filtros de la tabla Solicitante
+    if (filters.tipo_solicitante) {
+      conditions.push(
+        Prisma.sql`"Solicitante"."tipo_solicitante" = ${filters.tipo_solicitante}`
+      );
+    }
+
     if (filters.discapacidad) {
       conditions.push(
         Prisma.sql`"Solicitante"."discapacidad" = ${filters.discapacidad}`

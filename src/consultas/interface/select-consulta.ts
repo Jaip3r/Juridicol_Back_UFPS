@@ -16,6 +16,7 @@ export interface SelectConsultaObject {
     fecha_registro: boolean;
     solicitante: {
         select: {
+            tipo_solicitante: boolean,
             nombre: boolean;
             apellidos: boolean;
             tipo_identificacion: boolean;
