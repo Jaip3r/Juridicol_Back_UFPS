@@ -19,13 +19,16 @@ model Consulta {
   fecha_registro DateTime @default(now())
   fecha_asignacion DateTime?
   fecha_finalizacion DateTime?
-  solicitante Solicitante @relation(fields: [id_solicitante], references: [id], onDelete: Restrict)
   id_solicitante Int
-  estudiante_registro Usuario @relation("Registro", fields: [id_estudiante_registro], references: [id], onDelete: Restrict)
   id_estudiante_registro Int
-  estudiante_asignado Usuario? @relation("Asignacion", fields: [id_estudiante_asignado], references: [id], onDelete: Restrict)
   id_estudiante_asignado Int?
+
+  // Relaciones
+  solicitante Solicitante @relation(fields: [id_solicitante], references: [id], onDelete: Restrict)
+  estudiante_registro Usuario @relation("Registro", fields: [id_estudiante_registro], references: [id], onDelete: Restrict)
+  estudiante_asignado Usuario? @relation("Asignacion", fields: [id_estudiante_asignado], references: [id], onDelete: Restrict)
   archivos Archivo[]
+  solicitudes Solicitud[]
 
 }
 
@@ -48,8 +51,12 @@ model Archivo {
   tipo String
   fecha_carga DateTime @default(now())
   fecha_actualizacion DateTime @updatedAt
-  consulta Consulta @relation(fields: [id_consulta], references: [id])
-  id_consulta Int
+  id_consulta Int?
+  id_solicitud Int?
+
+  // Relaciones
+  consulta Consulta? @relation(fields: [id_consulta], references: [id], onDelete: Restrict)
+  solicitud Solicitud? @relation(fields: [id_solicitud], references: [id], onDelete: Restrict)
 
 }
 

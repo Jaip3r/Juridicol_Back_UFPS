@@ -882,7 +882,7 @@ export class ConsultasService {
     // Añadimos los filtros adicionales si se da el caso
     if (filters.area_derecho) {
       conditions.push(
-        Prisma.sql`"Consulta"."area_derecho" = ${filters.area_derecho}`
+        Prisma.sql`"Consulta"."area_derecho"::text = ${filters.area_derecho}`
       );
     }
 

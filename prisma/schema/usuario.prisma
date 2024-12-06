@@ -12,11 +12,26 @@ model Usuario {
   fecha_registro DateTime @unique @default(now())
   area_derecho AreaDerecho?
   grupo Grupo?
-  puedeRecepionar Boolean? 
+  puedeRecepionar Boolean?
+
+  // Relaciones con Consultas
   consultas_registradas Consulta[] @relation("Registro")
   consultas_asignadas Consulta[] @relation("Asignacion")
+
+  // Relaciones con Solicitudes
+  solicitudesEnviadas Solicitud[] @relation("EstudianteSolicitudes")
+  solicitudesRevisadasDocente Solicitud[] @relation("DocenteSolicitudes")
+  solicitudesRevisadasAdmin Solicitud[] @relation("AdminSolicitudes")
+
+  // Relaciones con Notificaciones
+  notificaciones Notificacion[]
+
+  // Otros
   resetPasswords ResetPassword[]
   refreshToken RefreshToken?
+
+  // Relaciones con las Asignacion_ronda
+  asignacionesRonda Asignacion_ronda[] 
 
 }
 
@@ -24,10 +39,12 @@ model ResetPassword {
 
   id Int @id @default(autoincrement())
   token String @unique
-  user Usuario @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
   user_id Int 
   fecha_creacion DateTime @default(now())
   fecha_expiracion DateTime
+
+  // Relaciones
+  user Usuario @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
 }
 
@@ -35,9 +52,11 @@ model RefreshToken {
 
   id Int @id @default(autoincrement())
   token String
-  user Usuario @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
   user_id Int @unique
   fecha_actualizacion DateTime @updatedAt
+
+  // Relaciones
+  user Usuario @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
 }
 

@@ -1,0 +1,39 @@
+model Solicitud {
+
+    id Int @id @default(autoincrement())
+    tipo String
+    motivo String
+    estado String
+    fecha_creacion DateTime @default(now())
+    comentario_docente String?
+    fecha_revision_docente DateTime?
+    comentario_administrador String?
+    fecha_revision_administrador DateTime?
+    id_consulta Int
+    id_estudiante Int
+    id_docente Int?
+    id_administrador Int?
+
+    // Relaciones
+    consulta Consulta @relation(fields: [id_consulta], references: [id], onDelete: Restrict)
+    estudiante Usuario @relation("EstudianteSolicitudes", fields: [id_estudiante], references: [id], onDelete: Restrict)
+    docente Usuario? @relation("DocenteSolicitudes", fields: [id_docente], references: [id], onDelete: Restrict)
+    administrador Usuario? @relation("AdminSolicitudes", fields: [id_administrador], references: [id], onDelete: Restrict)
+    archivos Archivo[]
+
+}
+
+model Notificacion {
+
+    id Int @id @default(autoincrement())
+    titulo String
+    mensaje String
+    fecha_creacion DateTime @default(now())
+    leido Boolean @default(false)
+    tipo String
+    id_usuario Int
+
+    // Relaciones
+    usuario Usuario @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
+
+}

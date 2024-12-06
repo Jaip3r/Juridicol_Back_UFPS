@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Logger, UseInterceptors, UploadedFiles, ParseFilePipeBuilder, HttpStatus, Query, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Logger, UseInterceptors, UploadedFiles, ParseFilePipeBuilder, HttpStatus, Query, Res, HttpCode } from '@nestjs/common';
 import { ConsultasService } from './consultas.service';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
@@ -301,6 +301,7 @@ export class ConsultasController {
 
 
   @Post('/retry/upload/:id')
+  @HttpCode(HttpStatus.OK)
   @UseInterceptors(FilesInterceptor('anexos', 6))
   async retryUploadAnexosConsulta(
     @Param() params: validateIdParamDto,

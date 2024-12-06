@@ -21,13 +21,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const errorMessage = exception.message;
 
         // Formateo de los detalles del error
-        const errorDetails = {
+        let errorDetails = {
             statusCode: status,
             method: request.method,
             path: request.url,
             message: Array.isArray(errorResponse["message"]) ? errorResponse["message"].join(", ") : errorResponse["message"] || errorMessage
         };
- 
+
+        // Si errorResponse es un objeto, combinamos sus propiedades con errorDetails
+        if (typeof errorResponse === 'object' && errorResponse !== null) {
+          errorDetails = {
+            ...errorDetails,
+            ...errorResponse
+          };
+        } else if (typeof errorResponse === 'string') {
+          // Si errorResponse es una cadena, actualizamos el mensaje
+          errorDetails.message = errorResponse;
+        }
+
         if (exception.getStatus() !== 401 && exception.getStatus() !== 403){
 
           // Registramos que la solicitud no se pudo procesar correctamente

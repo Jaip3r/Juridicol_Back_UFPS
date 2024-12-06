@@ -30,27 +30,31 @@ export class ArchivosService {
     // Mapeamos cada archivo a una promesa de subida
     const uploadPromises = anexos.map(async (file) => {
 
-        // Definimos la clave del archivo a subir
-        const fileKey = `$${radicado}-${file.originalname}-${randomUUID()}.pdf`;
+      // Obtenemos el nombre del archivo
+      const parts = file.originalname.split('.');
+      const fileName = parts.slice(0, -1).join('.');
 
-        // Confifuramos la subida
-        const putCommand = new PutObjectCommand({
-          Bucket: bucket,
-          Key: fileKey,
-          Body: file.buffer,
-          ContentType: 'application/pdf'
-        });
+      // Definimos la clave del archivo a subir
+      const fileKey = `${radicado}-${fileName}-${randomUUID()}.pdf`;
 
-        // Enviamos a cloudflare
-        await this.s3Client.send(putCommand);
+      // Confifuramos la subida
+      const putCommand = new PutObjectCommand({
+        Bucket: bucket,
+        Key: fileKey,
+        Body: file.buffer,
+        ContentType: 'application/pdf'
+      });
 
-        // Retornamos los datos necesarios para la inserción en la base de datos
-        return {
-          nombre: file.originalname,
-          clave: fileKey,
-          tipo: TipoAnexo.anexo,
-          id_consulta: consulta_id,
-        };
+      // Enviamos a cloudflare
+      await this.s3Client.send(putCommand);
+
+      // Retornamos los datos necesarios para la inserción en la base de datos
+      return {
+        nombre: file.originalname,
+        clave: fileKey,
+        tipo: TipoAnexo.anexo,
+        id_consulta: consulta_id,
+      };
 
     });
 

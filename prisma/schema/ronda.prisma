@@ -1,0 +1,35 @@
+model Ronda_asignaciones {
+
+    id Int @id @default(autoincrement())
+    area_derecho AreaDerecho
+    semestre String
+    estado EstadoRondaAsignacion @default(en_proceso)
+    fecha_inicio DateTime @default(now())
+    fecha_fin DateTime?
+
+    // Relaciones
+    asignaciones Asignacion_ronda[]
+
+    @@index([area_derecho, semestre])
+
+}
+
+model Asignacion_ronda {
+
+    id Int @id @default(autoincrement())
+    id_ronda Int
+    id_estudiante Int
+    fecha_asignacion DateTime @default(now())
+
+    // Relaciones
+    ronda Ronda_asignaciones @relation(fields: [id_ronda], references: [id], onDelete: Cascade, onUpdate: Restrict)
+    estudiante Usuario @relation(fields: [id_estudiante], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+    @@unique([id_ronda, id_estudiante], name: "unique_asignacion_por_ronda")
+
+}
+
+enum EstadoRondaAsignacion {
+    en_proceso
+    completada
+}
