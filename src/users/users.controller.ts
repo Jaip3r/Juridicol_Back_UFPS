@@ -15,6 +15,7 @@ import { generateExcelReport } from '../common/utils/generateExcelReport';
 import { UserPaginateResponseDto } from './dto/response/user-paginate-response.dto';
 import { UserResponseDto } from './dto/response/user-response.dto';
 import { GenericApiResponseDto } from '../common/dto/generic-api-response.dto';
+import { Throttle } from '@nestjs/throttler';
 
 
 @ApiTags('users')
@@ -165,6 +166,7 @@ export class UsersController {
       }
     }
   })
+  @Throttle({ default: { ttl: 180, limit: 15 } })
   @Get('/report')
   async reportUsers(
     @Query() query: UsersQueryDto,

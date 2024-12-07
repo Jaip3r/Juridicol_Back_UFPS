@@ -18,6 +18,7 @@ import { SolicitantePaginateResponseDto } from './dto/response/solicitante-pagin
 import { SolicitanteResponseDto } from './dto/response/solicitante-response.dto';
 import { CreateApiResponseDto } from '../common/dto/create-api-response.dto';
 import { GenericApiResponseDto } from '../common/dto/generic-api-response.dto';
+import { Throttle } from '@nestjs/throttler';
 
 
 @ApiTags('solicitantes')
@@ -246,7 +247,8 @@ export class SolicitantesController {
         },
       },
     },
-  }) 
+  })
+  @Throttle({ default: { ttl: 180, limit: 15 } }) 
   @Get('/report')
   async reportSolicitantes(
     @Query() query: SolcitanteQueryDto,

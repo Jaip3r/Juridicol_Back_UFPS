@@ -14,6 +14,7 @@ import { TZDate } from '@date-fns/tz';
 import { validateIdParamDto } from 'src/common/dto/validate-idParam.dto';
 import { Response } from 'express';
 import { generateExcelReport } from 'src/common/utils/generateExcelReport';
+import { Throttle } from '@nestjs/throttler';
 
 
 @Controller('consultas')
@@ -119,6 +120,7 @@ export class ConsultasController {
   }
 
 
+  @Throttle({ default: { ttl: 180, limit: 15 } })
   @Authorization([Rol.ADMIN])
   @Get('/report')
   async reportConsultas(
@@ -300,6 +302,7 @@ export class ConsultasController {
   }
 
 
+  @Authorization([Rol.ADMIN, Rol.ESTUDIANTE])
   @Post('/retry/upload/:id')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FilesInterceptor('anexos', 6))

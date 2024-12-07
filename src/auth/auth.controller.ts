@@ -16,6 +16,7 @@ import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiForbiddenResponse, Ap
 import { UserDto } from 'src/users/dto/user.dto';
 import { RefreshTokenResponseDto } from './dto/response/refresh-token-response.dto';
 import { GenericApiResponseDto } from 'src/common/dto/generic-api-response.dto';
+import { Throttle } from '@nestjs/throttler';
 
 
 @ApiTags('auth')
@@ -85,6 +86,7 @@ export class AuthController {
   @ApiBody({ type: LoginDto, description: 'Credenciales de inicio de sesión' })
   @ApiOkResponse({ description: 'Inicio de sesión exitoso. Devuelve el token de acceso.', type: GenericApiResponseDto })
   @ApiUnauthorizedResponse({ description: 'Credenciales no válidas' })
+  @Throttle({ default: { ttl: 300000, limit: 5 } })
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: Response) {
 
@@ -130,6 +132,7 @@ export class AuthController {
   @ApiOkResponse({ description: 'Contraseña cambiada correctamente', type: GenericApiResponseDto })
   @ApiBadRequestResponse({ description: 'Error de validación de datos' })
   @ApiUnauthorizedResponse({ description: 'Error de autenticación de datos' })
+  @Throttle({ default: { ttl: 180000, limit: 15 } })
   @Put('change-password')
   async changePassword(@Body() changePasswordDto: ChangePasswordDto, @ActorUser() actor_user: ActorUserInterface) {
 
@@ -156,6 +159,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Solicitud de restablecimiento de contraseña.' })
   @ApiBody({ type: ForgotPasswordDto, description: 'Datos para solicitar el restablecimiento de contraseña' })
   @ApiOkResponse({ description: 'Correo enviado para restablecer la contraseña', type: GenericApiResponseDto })
+  @Throttle({ default: { ttl: 600000, limit: 5 } })
   @Post('forgot-password')
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
 

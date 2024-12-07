@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,6 +22,8 @@ import { ActorUserInterface } from 'src/common/interfaces/actor-user.interface';
 
 @Injectable()
 export class ConsultasService {
+
+  private readonly logger = new Logger(ArchivosService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -123,6 +125,11 @@ export class ConsultasService {
       await this.archivosService.uploadFiles(anexos, consulta.id, consulta.radicado);
       
     } catch (error) {
+
+      this.logger.error({
+        request: {},
+        error: error.stack
+      }, `Error durante la carga de archivos para la consulta ${consulta.radicado}: ${error.message}`);
 
       throw new InternalServerErrorException({
           message: 'Consulta registrada, pero ocurrió un error al subir los archivos. Por favor, intente subirlos nuevamente.',
@@ -361,9 +368,16 @@ export class ConsultasService {
     try {
       await this.archivosService.uploadFiles(anexos, consultaId, consulta.radicado);
     } catch (error) {
+
+      this.logger.error({
+        request: {},
+        error: error.stack
+      }, `Error al reintentar cargar los archivos para la consulta ${consulta.radicado}: ${error.message}`);
+
       throw new InternalServerErrorException(
         'Ocurrió un error al subir los archivos. Por favor, intente nuevamente.'
       );
+
     }
 
   }

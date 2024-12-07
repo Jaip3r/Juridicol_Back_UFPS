@@ -2,7 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { Request } from 'express';
 import { LoggerModule } from 'nestjs-pino';
 import { CorrelationIdMiddleware, CORRELATION_ID_HEADER } from './common/middlewares/correlation-id.middleware';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { AllExceptionFilter } from './common/filters/AllExceptionFilter';
 import { HttpExceptionFilter } from './common/filters/HttpExceptionFilter';
 import { UsersModule } from './users/users.module';
@@ -14,6 +14,7 @@ import { ConsultasModule } from './consultas/consultas.module';
 import { StorageModule } from './storage/storage.module';
 import { ArchivosModule } from './archivos/archivos.module';
 import config from './config/configuration';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 
 @Module({
@@ -54,7 +55,10 @@ import config from './config/configuration';
             return `Unauthorized access attempt: ${req.method} ${req.url}`;
           }
           if (res.statusCode === 403) {
-            return `Forbidden access attempt: ${req.method} ${req.url}`
+            return `Forbidden access attempt: ${req.method} ${req.url}`;
+          }
+          if (res.statusCode === 429) {
+            return `Too Many Requests: ${req.method} ${req.url}`;
           }
           return `Request Success: ${req.method} ${req.url}`;
         },
@@ -76,10 +80,18 @@ import config from './config/configuration';
     SolicitantesModule,
     ConsultasModule,
     StorageModule,
-    ArchivosModule
+    ArchivosModule,
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 40
+    }])
   ],
   controllers: [],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard
+    },
     {
       provide: APP_FILTER,
       useClass: AllExceptionFilter

@@ -39,6 +39,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
           errorDetails.message = errorResponse;
         }
 
+        if (status === 429) {
+          errorDetails.message = "Demasiadas solicitudes. Intente de nuevo más tarde"
+        }
+
         if (exception.getStatus() !== 401 && exception.getStatus() !== 403){
 
           // Registramos que la solicitud no se pudo procesar correctamente
