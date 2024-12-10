@@ -43,7 +43,7 @@ export class ConsultaQueryDTO {
     })
     @IsOptional()
     @IsEnum(Tipo_Solicitante, { message: "Tipo de solicitante no válido" })
-    tipo_solicitante: Tipo_Solicitante
+    tipo_solicitante?: Tipo_Solicitante
 
     @ApiProperty({
         description: "Discapacidad del solicitante",

@@ -5,6 +5,7 @@ import { TipoConsulta } from "../enum/tipoConsulta";
 import { AreaDerecho } from "src/users/enum/areaDerecho.enum";
 import { CreateSolicitanteDto } from "src/solicitantes/dto/create-solicitante.dto";
 
+
 export class CreateConsultaDto extends CreateSolicitanteDto {
 
     @ApiProperty({
@@ -84,7 +85,7 @@ export class CreateConsultaDto extends CreateSolicitanteDto {
     @IsOptional()
     @MinLength(5, { message: 'La dirección del accionado debe contener minimo 5 carácteres' })
     @MaxLength(60, { message: 'La dirección del accionado no debe sobrepasar los 60 carácteres' })
-    direccion_accionado: string;
+    direccion_accionado?: string;
 
     @ApiProperty({
         description: 'Hechos relevantes de la consulta',

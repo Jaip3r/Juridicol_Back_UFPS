@@ -15,8 +15,17 @@ import { validateIdParamDto } from 'src/common/dto/validate-idParam.dto';
 import { Response } from 'express';
 import { generateExcelReport } from 'src/common/utils/generateExcelReport';
 import { Throttle } from '@nestjs/throttler';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse, ApiUnprocessableEntityResponse } from '@nestjs/swagger';
+import { CreateApiResponseDto } from 'src/common/dto/create-api-response.dto';
+import { ConsultasResponseDto } from './dto/response/consultas-response.dto';
+import { ConsultaInfoResponseDto } from './dto/response/consulta-info.dto';
 
 
+@ApiTags('Consultas')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Usuario no autenticado.' })
+@ApiForbiddenResponse({ description: 'Acceso no autorizado.' })
+@ApiInternalServerErrorResponse({ description: 'Error interno del servidor.' })
 @Controller('consultas')
 export class ConsultasController {
 
@@ -29,6 +38,31 @@ export class ConsultasController {
 
   constructor(private readonly consultasService: ConsultasService) {}
 
+
+  /**
+   * POST /consultas
+   * Crea una nueva consulta en el sistema.
+   */
+  @ApiOperation({ 
+    summary: 'Registrar una nueva consulta.',
+    description: 'Crea un nuevo registro de consulta en el sistema, con la posibilidad de adjuntar archivos PDF como anexos.'
+  }) 
+  @ApiBody({ 
+    type: CreateConsultaDto, 
+    description: 'Datos necesarios para crear la consulta, incluyendo información del solicitante y su perfil socioeconómico' 
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiCreatedResponse({
+    description: 'Consulta registrada correctamente.',
+    type: CreateApiResponseDto,
+    example: {
+      status: 201,
+      message: 'Consulta ABC-12345 registrada correctamente',
+      data: null
+    }
+  })
+  @ApiBadRequestResponse({ description: 'Error de validación de datos.' })
+  @ApiUnprocessableEntityResponse({ description: 'Error al subir los archivos (tamaño o tipo no válido).'})
   @Authorization([Rol.ADMIN, Rol.ESTUDIANTE])
   @Post()
   @UseInterceptors(FilesInterceptor('anexos', 6))
@@ -61,7 +95,18 @@ export class ConsultasController {
 
   }
 
-
+  /**
+   * GET /consultas
+   * Obtiene una lista de consultas con filtros opcionales.
+   */
+  @ApiOperation({
+    summary: 'Listar Consultas.',
+    description: 'Obtiene una lista de consultas utilizando filtros opcionales y paginación basada en cursor.'
+  })
+  @ApiOkResponse({
+    description: 'Consultas obtenidas correctamente',
+    type: ConsultasResponseDto
+  })
   @Authorization([Rol.ADMIN])
   @Get()
   async getConsultas(
@@ -71,6 +116,24 @@ export class ConsultasController {
   }
 
 
+  /**
+   * GET /consultas/count
+   * Devuelve el conteo de consultas según filtros.
+   */
+  @ApiOperation({
+    summary: 'Conteo de consultas.',
+    description: 'Obtiene el número total de consultas que coinciden con los filtros proporcionados.'
+  })
+  @ApiOkResponse({
+    description: 'Conteo obtenido correctamente.',
+    schema: {
+      example: {
+        status: 200,
+        message: 'Conteo de consultas realizado correctamente',
+        totalRecords: 42
+      }
+    }
+  })
   @Authorization([Rol.ADMIN])
   @Get('/count')
   async countConsultas(
@@ -120,6 +183,25 @@ export class ConsultasController {
   }
 
 
+  /**
+   * GET /consultas/report
+   * Genera un reporte en formato Excel de las consultas que cumplen con ciertos filtros.
+   */
+  @ApiOperation({
+    summary: 'Generar reporte de consultas.',
+    description: 'Genera un archivo Excel con la información filtrada de las consultas.'
+  })
+  @ApiOkResponse({
+    description: 'Archivo de reporte generado correctamente.',
+    content: {
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
+        schema: {
+          type: 'string',
+          format: 'binary'
+        }
+      }
+    }
+  })
   @Throttle({ default: { ttl: 180, limit: 15 } })
   @Authorization([Rol.ADMIN])
   @Get('/report')
@@ -250,6 +332,20 @@ export class ConsultasController {
   }
 
 
+  /**
+   * GET /consultas/solicitante/:id
+   * Obtiene las consultas relacionadas a un solicitante específico.
+   */
+  @ApiOperation({
+    summary: 'Listar consultas de un solicitante.',
+    description: 'Obtiene las consultas asociadas a un solicitante dado su ID.'
+  })
+  @ApiParam({ name: 'id', description: 'ID del solicitante', type: Number })
+  @ApiNotFoundResponse({ description: 'Solicitante no identificado.' })
+  @ApiOkResponse({
+    description: 'Consultas obtenidas correctamente.',
+    type: ConsultasResponseDto
+  }) 
   @Authorization([Rol.ADMIN])
   @Get('/solicitante/:id')
   async getConsultasSolicitante(
@@ -265,6 +361,25 @@ export class ConsultasController {
   }
 
 
+  /**
+   * GET /consultas/count/solicitante/:id
+   * Devuelve el conteo de consultas de un solicitante específico.
+   */
+  @ApiOperation({
+    summary: 'Conteo de consultas de un solicitante.',
+    description: 'Obtiene el número total de consultas asociadas a un solicitante.'
+  })
+  @ApiParam({ name: 'id', description: 'ID del solicitante', type: Number })
+  @ApiOkResponse({
+    description: 'Conteo obtenido correctamente.',
+    schema: {
+      example: {
+        status: 200,
+        message: 'Conteo de consultas realizado correctamente',
+        totalRecords: 10
+      }
+    }
+  })
   @Authorization([Rol.ADMIN])
   @Get('/count/solicitante/:id')
   async countConsultasSolicitante(
@@ -302,6 +417,29 @@ export class ConsultasController {
   }
 
 
+  /**
+   * POST /consultas/retry/upload/:id
+   * Permite reintentar la subida de anexos a una consulta existente.
+   */
+  @ApiOperation({
+    summary: 'Reintentar carga de anexos.',
+    description: 'Permite subir anexos PDF nuevamente a una consulta ya existente.'
+  })
+  @ApiParam({ name: 'id', description: 'ID de la consulta', type: Number })
+  @ApiConsumes('multipart/form-data')
+  @ApiOkResponse({
+    description: 'Archivos añadidos correctamente.',
+    schema: {
+      example: {
+        status: 200,
+        message: 'Archivos añadidos correctamente a la consulta',
+        data: null
+      }
+    }
+  })
+  @ApiUnprocessableEntityResponse({ 
+    description: 'Error al subir los archivos (tamaño o tipo no válido)'
+  })
   @Authorization([Rol.ADMIN, Rol.ESTUDIANTE])
   @Post('/retry/upload/:id')
   @HttpCode(HttpStatus.OK)
@@ -335,6 +473,20 @@ export class ConsultasController {
   }
 
 
+  /**
+   * GET /consultas/:id
+   * Obtiene la información detallada de una consulta específica.
+   */
+  @ApiOperation({
+    summary: 'Obtener detalles de una consulta.',
+    description: 'Devuelve la información completa de una consulta dada su ID.'
+  })
+  @ApiParam({ name: 'id', description: 'ID de la consulta', type: Number })
+  @ApiOkResponse({
+    description: 'Información de la consulta obtenida correctamente',
+    type: ConsultaInfoResponseDto
+  })
+  @ApiNotFoundResponse({ description: 'Consulta no identificada.' })
   @Authorization([Rol.ADMIN])
   @Get(':id')
   async getConsultaById(
@@ -390,10 +542,10 @@ export class ConsultasController {
 
   // Para cambio de area
 
-  @Patch(':id')
+  /*@Patch(':id')
   update(@Param('id') id: string, @Body() updateConsultaDto: UpdateConsultaDto) {
     return this.consultasService.update(+id, updateConsultaDto);
-  }
+  }*/
 
 
   // Util methods
