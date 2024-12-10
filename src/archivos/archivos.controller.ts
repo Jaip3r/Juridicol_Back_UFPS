@@ -8,8 +8,15 @@ import { format } from 'date-fns';
 import { TZDate } from '@date-fns/tz';
 import { ActorUser } from "src/common/decorators/actor-user.decorator";
 import { ActorUserInterface } from "src/common/interfaces/actor-user.interface";
+import { ApiBearerAuth, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
+import { ArchivoResponseDTO } from "./dto/response/archivo-response.dto";
 
 
+@ApiTags('Archivos')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Usuario no autenticado.' })
+@ApiForbiddenResponse({ description: 'Acceso no autorizado.' })
+@ApiInternalServerErrorResponse({ description: 'Error interno del servidor.' })
 @Authorization([Rol.ADMIN])
 @Controller('archivos')
 export class ArchivosController {
@@ -23,6 +30,27 @@ export class ArchivosController {
 
     constructor(private readonly archivosService: ArchivosService) {}
 
+
+    /**
+     * GET /archivos/url/:id
+     * Obtiene una URL de acceso para un archivo especifico.
+     */
+    @ApiOperation({
+        summary: 'Obtener URL de acceso.',
+        description: 'Obtiene una URL de acceso para un archivo especifico.'
+    })
+    @ApiParam({ name: 'id', description: 'ID del archivo', type: Number })
+    @ApiOkResponse({
+        description: 'URL de archivo obtenida correctamente.',
+        schema: {
+            example: {
+              status: 200,
+              message: 'URL de archivo obtenida correctamente.',
+              url: 'url'
+            }
+        }
+    }) 
+    @ApiNotFoundResponse({ description: 'Archivo no identificado.' })
     @Get('/url/:id')
     async getUrlArchivo(
         @Param() params: validateIdParamDto
@@ -43,6 +71,20 @@ export class ArchivosController {
     }
 
 
+    /**
+     * GET /archivos/consulta/:id
+     * Obtiene los archivos relacionados a una consulta especifica.
+     */
+    @ApiOperation({
+        summary: 'Listar archivos de una consulta.',
+        description: 'Obtiene los archivos asociados a una consulta dado su ID.'
+    })
+    @ApiParam({ name: 'id', description: 'ID de la consulta', type: Number })
+    @ApiOkResponse({
+        description: 'Archivos obtenidos correctamente.',
+        type: ArchivoResponseDTO
+    }) 
+    @ApiNotFoundResponse({ description: 'Consulta no identificada.' })
     @Get('/consulta/:id')
     async getArchivosConsulta(
         @Param() params: validateIdParamDto,
@@ -135,6 +177,26 @@ export class ArchivosController {
     }
 
 
+    /**
+     * GET /archivos/consulta/:id/count
+     * Devuelve el conteo de archivos relacionados a una consulta especifica.
+     */
+    @ApiOperation({
+        summary: 'Conteo de archivos de una consulta.',
+        description: 'Obtiene el número total de archivos asociados a una consulta.'
+    })
+    @ApiParam({ name: 'id', description: 'ID de la consulta', type: Number })
+    @ApiOkResponse({
+        description: 'Conteo obtenido correctamente.',
+        schema: {
+          example: {
+            status: 200,
+            message: 'Conteo de archivos realizado correctamente',
+            totalRecords: 10
+          }
+        }
+    })
+    @ApiNotFoundResponse({ description: 'Consulta no identificada.' })
     @Get('/consulta/:id/count')
     async countArchivos(
         @Param() params: validateIdParamDto,
