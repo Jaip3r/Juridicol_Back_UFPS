@@ -6,7 +6,7 @@ import { ActorUser } from '../common/decorators/actor-user.decorator';
 import { ActorUserInterface } from '../common/interfaces/actor-user.interface';
 import { Authorization } from '../auth/decorators/auth.decorator';
 import { Rol } from './enum/rol.enum';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiTooManyRequestsResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { UsersQueryDto } from './dto/user-query.dto';
 import { format } from 'date-fns';
 import { TZDate } from "@date-fns/tz";
@@ -20,8 +20,9 @@ import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('users')
 @ApiBearerAuth()
-@ApiUnauthorizedResponse({ description: 'Usuario no autenticado' })
-@ApiForbiddenResponse({ description: 'Acceso no autorizado' })
+@ApiUnauthorizedResponse({ description: 'Usuario no autenticado.' })
+@ApiForbiddenResponse({ description: 'Acceso no autorizado.' })
+@ApiTooManyRequestsResponse({ description: 'Demasiadas solicitudes.' })
 @ApiInternalServerErrorResponse({ description: 'Error interno del servidor.' })
 @Authorization([Rol.ADMIN])
 @Controller('users')
@@ -35,12 +36,19 @@ export class UsersController {
 
   constructor(private readonly usersService: UsersService) { }
 
-  @ApiOperation({ summary: 'Obtener usuarios aplicando filtros y paginados por cursor.' })
+
+  /**
+   * GET /users
+   * Obtiene una lista de usuarios con filtros opcionales.
+   */
+  @ApiOperation({ 
+    summary: 'Listar usuarios.',
+    description: 'Obtiene una lista de usuarios utilizando filtros opcionales y paginación basada en cursor.' 
+  })
   @ApiOkResponse({
-    description: 'Usuarios obtenidos correctamente',
+    description: 'Usuarios obtenidos correctamente.',
     type: UserPaginateResponseDto
   })
-  @ApiBadRequestResponse({ description: 'Error de validación de datos' })
   @Get()
   async getUsers(
     @Query() query: UsersQueryDto
@@ -111,9 +119,16 @@ export class UsersController {
   }
 
 
-  @ApiOperation({ summary: 'Obtener el conteo de usuarios con filtros aplicados.' })
+  /**
+   * GET /users/count
+   * Devuelve el conteo de usuarios según filtros.
+   */
+  @ApiOperation({ 
+    summary: 'Conteo de usuarios.',
+    description: 'Obtiene el número total de usuarios que coinciden con los filtros proporcionados.' 
+  })
   @ApiOkResponse({
-    description: 'Conteo de usuarios realizado correctamente',
+    description: 'Conteo obtenido correctamente.',
     schema: {
       type: 'object',
       properties: {
@@ -123,7 +138,6 @@ export class UsersController {
       }
     }
   })
-  @ApiBadRequestResponse({ description: 'Error de validación de datos' })
   @Get('/count')
   async countUsers(
     @Query() query: UsersQueryDto
@@ -154,9 +168,16 @@ export class UsersController {
   }
 
 
-  @ApiOperation({ summary: 'Generar archivo de reporte con información de los usuarios.' })
+  /**
+   * GET /users/report
+   * Genera un reporte en formato Excel de los usuarios que cumplen con ciertos filtros.
+   */
+  @ApiOperation({ 
+    summary: 'Generar reporte de usuarios.',
+    description: 'Genera un archivo Excel con la información filtrada de los usuarios.' 
+  })
   @ApiOkResponse({
-    description: 'Archivo de reporte generado correctamente',
+    description: 'Archivo de reporte generado correctamente.',
     content: {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
         schema: {
@@ -252,9 +273,16 @@ export class UsersController {
   }
 
 
-  @ApiOperation({ summary: 'Obtener un conteo de todos los usuarios registrados en el sistema agrupados por rol.' })
+  /**
+   * GET /users/countUsersGroupByRol
+   * Devuelve el conteo de usuarios agrupados por rol.
+   */
+  @ApiOperation({ 
+    summary: 'Conteo de usuarios agrupados por rol.',
+    description: 'Obtiene el número total de usuarios registrados agrupados por rol.' 
+  })
   @ApiOkResponse({
-    description: 'Conteo de usuarios obtenido correctamente',
+    description: 'Conteo de usuarios obtenido correctamente.',
     schema: {
       type: 'object',
       properties: {
@@ -292,10 +320,20 @@ export class UsersController {
   }
 
 
-  @ApiOperation({ summary: 'Obtener un usuario por ID.' })
+  /**
+   * GET /users/:id
+   * Obtiene información detallada de un usuario especifico.
+   */
+  @ApiOperation({ 
+    summary: 'Obtener detalles de un usuario.',
+    description: 'Devuelve la información completa de un usuario dado su ID.' 
+  })
   @ApiParam({ name: 'id', description: 'ID del usuario', type: String })
-  @ApiOkResponse({ description: 'Usuario obtenido correctamente', type: UserResponseDto })
-  @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
+  @ApiOkResponse({ 
+    description: 'Usuario obtenido correctamente', 
+    type: UserResponseDto 
+  })
+  @ApiNotFoundResponse({ description: 'Usuario no identificado.' })
   @Get(':id')
   async findOneUserById(@Param() params: validateIdParamDto) {
 
@@ -310,12 +348,19 @@ export class UsersController {
   }
 
 
-  @ApiOperation({ summary: 'Actualizar datos de usuario.' })
+  /**
+   * PATCH /users/:id
+   * Actualiza la información de un usuario especifico.
+   */
+  @ApiOperation({ 
+    summary: 'Actualizar datos de usuario.',
+    description: 'Actualiza la información de asociada a un usuario dado su ID.' 
+  })
   @ApiParam({ name: 'id', description: 'ID del usuario', type: String })
   @ApiBody({ type: UpdateUserDto, description: 'Datos para actualizar el usuario' })
-  @ApiOkResponse({ description: 'Usuario actualizado correctamente', type: GenericApiResponseDto })
-  @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
-  @ApiBadRequestResponse({ description: 'Error de validación de datos' })
+  @ApiOkResponse({ description: 'Usuario actualizado correctamente.', type: GenericApiResponseDto })
+  @ApiNotFoundResponse({ description: 'Usuario no identificado.' })
+  @ApiBadRequestResponse({ description: 'Error de validación de datos.' })
   @Patch(':id')
   async updateInfoUser(@Param() params: validateIdParamDto,
     @Body() updateUserDto: UpdateUserDto,
@@ -339,10 +384,17 @@ export class UsersController {
   }
 
 
-  @ApiOperation({ summary: 'Habilitar credenciales de usuario.' })
+  /**
+   * PATCH /users/enable/:id
+   * Habilita las credenciales de un usuario especifico.
+   */
+  @ApiOperation({ 
+    summary: 'Habilitar credenciales de usuario.',
+    description: 'Permite habilitar las credenciales de un usuario especifico.'
+  })
   @ApiParam({ name: 'id', description: 'ID del usuario', type: String })
-  @ApiOkResponse({ description: 'Credenciales de usuario habilitadas correctamente', type: GenericApiResponseDto })
-  @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
+  @ApiOkResponse({ description: 'Credenciales de usuario habilitadas correctamente.', type: GenericApiResponseDto })
+  @ApiNotFoundResponse({ description: 'Usuario no identificado.' })
   @Patch('/enable/:id')
   async enableCredentials(@Param() params: validateIdParamDto,
     @ActorUser() { sub, username, rol }: ActorUserInterface
@@ -365,10 +417,17 @@ export class UsersController {
   }
 
 
-  @ApiOperation({ summary: 'Inhabilitar credenciales de usuario.' })
+  /**
+   * PATCH /users/disable/:id
+   * Inhabilita las credenciales de un usuario especifico.
+   */
+  @ApiOperation({ 
+    summary: 'Inhabilitar credenciales de usuario.' ,
+    description: 'Permite inhabilitar las credenciales de un usuario especifico.'
+  })
   @ApiParam({ name: 'id', description: 'ID del usuario', type: String })
-  @ApiOkResponse({ description: 'Credenciales de usuario inhabilitadas correctamente', type: GenericApiResponseDto })
-  @ApiNotFoundResponse({ description: 'Usuario no encontrado' })
+  @ApiOkResponse({ description: 'Credenciales de usuario inhabilitadas correctamente.', type: GenericApiResponseDto })
+  @ApiNotFoundResponse({ description: 'Usuario no identificado.' })
   @Patch('/disable/:id')
   async disableCredentials(@Param() params: validateIdParamDto, @ActorUser() { sub, username, rol }: ActorUserInterface) {
 

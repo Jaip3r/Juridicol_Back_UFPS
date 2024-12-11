@@ -94,6 +94,7 @@ export class ConsultasController {
     }
 
   }
+  
 
   /**
    * GET /consultas

@@ -13,7 +13,7 @@ import { TZDate } from '@date-fns/tz';
 import { UTCDate } from '@date-fns/utc';
 import { Response } from 'express';
 import { generateExcelReport } from '../common/utils/generateExcelReport';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiForbiddenResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags, ApiTooManyRequestsResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { SolicitantePaginateResponseDto } from './dto/response/solicitante-paginate-reponse.dto';
 import { SolicitanteResponseDto } from './dto/response/solicitante-response.dto';
 import { CreateApiResponseDto } from '../common/dto/create-api-response.dto';
@@ -25,6 +25,7 @@ import { Throttle } from '@nestjs/throttler';
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Usuario no autenticado.' })
 @ApiForbiddenResponse({ description: 'Acceso no autorizado.' })
+@ApiTooManyRequestsResponse({ description: 'Demasiadas solicitudes.' })
 @ApiInternalServerErrorResponse({ description: 'Error interno del servidor.' })
 @Authorization([Rol.ADMIN])
 @Controller('solicitantes')
@@ -40,13 +41,21 @@ export class SolicitantesController {
 
   constructor(private readonly solicitantesService: SolicitantesService) {}
 
-  @ApiOperation({ summary: 'Registrar un nuevo solicitante.' }) 
+
+  /**
+   * POST /solicitantes
+   * Registra un nuevo solicitante en el sistema.
+   */
+  @ApiOperation({ 
+    summary: 'Registrar un nuevo solicitante.',
+    description: 'Crea un nuevo registro de solicitante en el sistema, incluyendo su información socioeconómica.' 
+  }) 
   @ApiBody({ type: CreateSolicitanteDto, description: 'Datos del solicitante' })
   @ApiCreatedResponse({
-    description: 'Solicitante registrado correctamente',
+    description: 'Solicitante registrado correctamente.',
     type: CreateApiResponseDto
   })
-  @ApiBadRequestResponse({ description: 'Error de validación de datos' })
+  @ApiBadRequestResponse({ description: 'Error de validación de datos.' })
   @Post()
   async create(
     @Body() createSolicitanteDto: CreateSolicitanteDto,
@@ -71,9 +80,16 @@ export class SolicitantesController {
   }
 
 
-  @ApiOperation({ summary: 'Obtener solicitantes aplicando filtros y paginados por cursor.' }) 
+  /**
+   * GET /solicitantes
+   * Obtiene una lista de solicitantes con filtros opcionales.
+   */
+  @ApiOperation({ 
+    summary: 'Listar solicitantes.',
+    description: 'Obtiene una lista de solicitantes utilizando filtros opcionales y paginación basada en cursor.' 
+  }) 
   @ApiOkResponse({
-    description: 'Información de solicitantes obtenida correctamente',
+    description: 'Información de solicitantes obtenida correctamente.',
     type: SolicitantePaginateResponseDto
   })
   @Get()
@@ -183,9 +199,16 @@ export class SolicitantesController {
   }
 
 
-  @ApiOperation({ summary: 'Obtener el conteo de solicitantes con filtros aplicados.' })
+  /**
+   * GET /solicitantes/count
+   * Devuelve el conteo de solicitantes según filtros.
+   */
+  @ApiOperation({ 
+    summary: 'Conteo de solicitantes.',
+    description: 'Obtiene el número total de solicitantes que coinciden con los filtros proporcionados.'
+  })
   @ApiOkResponse({
-    description: 'Conteo de solicitantes realizado correctamente',
+    description: 'Conteo de solicitantes realizado correctamente.',
     schema: {
       type: 'object',
       properties: {
@@ -236,9 +259,16 @@ export class SolicitantesController {
   }
 
 
-  @ApiOperation({ summary: 'Generar archivo de reporte con información de los solicitantes.' })
+  /**
+   * GET /solicitantes/report
+   * Genera un reporte en formato Excel de los solicitantes que cumplen con ciertos filtros.
+   */
+  @ApiOperation({ 
+    summary: 'Generar reporte de solicitantes.' ,
+    description: 'Genera un archivo Excel con la información filtrada de los solicitantes.'
+  })
   @ApiOkResponse({
-    description: 'Archivo de reporte generado correctamente',
+    description: 'Archivo de reporte generado correctamente.',
     content: {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
         schema: {
@@ -362,11 +392,19 @@ export class SolicitantesController {
   }
 
 
-  @ApiOperation({ summary: 'Obtener un solicitante por ID.' }) 
+
+  /**
+   * GET /solicitantes/:id
+   * Obtiene la información detallada de un solicitante específico.
+   */
+  @ApiOperation({ 
+    summary: 'Obtener detalles de solicitante.',
+    description: 'Devuelve la información completa de un solicitante junto con su perfil socioeconómico dado su ID.'
+  }) 
   @ApiParam({ name: 'id', description: 'ID del solicitante', type: String })
-  @ApiNotFoundResponse({ description: 'Solicitante no encontrado' }) 
+  @ApiNotFoundResponse({ description: 'Solicitante no identificado.' }) 
   @ApiOkResponse({
-    description: 'Información del solicitante obtenida correctamente',
+    description: 'Información del solicitante obtenida correctamente.',
     type: SolicitanteResponseDto
   })
   @Get(':id')
@@ -392,12 +430,19 @@ export class SolicitantesController {
   }
 
 
-  @ApiOperation({ summary: 'Actualizar los datos de un solicitante.' })
+  /**
+   * PATCH /solicitantes/:id
+   * Actualiza la información asociada a un solicitante específico.
+   */
+  @ApiOperation({ 
+    summary: 'Actualizar datos de solicitante.',
+    description: 'Actualiza la información de asociada a un solicitante dado su ID.' 
+  })
   @ApiParam({ name: 'id', description: 'ID del solicitante', type: String })
-  @ApiNotFoundResponse({ description: 'Solicitante no encontrado' })
-  @ApiBadRequestResponse({ description: 'Error de validación de datos' })
+  @ApiNotFoundResponse({ description: 'Solicitante no identificado.' })
+  @ApiBadRequestResponse({ description: 'Error de validación de datos.' })
   @ApiOkResponse({
-    description: 'Información del solicitante actualizada correctamente',
+    description: 'Información del solicitante actualizada correctamente.',
     type: GenericApiResponseDto
   }) 
   @Patch(':id')
