@@ -15,13 +15,15 @@ import { StorageModule } from './storage/storage.module';
 import { ArchivosModule } from './archivos/archivos.module';
 import config from './config/configuration';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { envSchema } from './common/validation/envSchema';
 
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [config]
+      load: [config],
+      validationSchema: envSchema
     }),
     LoggerModule.forRoot({
       pinoHttp: {

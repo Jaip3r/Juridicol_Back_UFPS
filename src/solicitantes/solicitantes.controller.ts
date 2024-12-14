@@ -19,6 +19,7 @@ import { SolicitanteResponseDto } from './dto/response/solicitante-response.dto'
 import { CreateApiResponseDto } from '../common/dto/create-api-response.dto';
 import { GenericApiResponseDto } from '../common/dto/generic-api-response.dto';
 import { Throttle } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
 
 
 @ApiTags('solicitantes')
@@ -32,14 +33,17 @@ import { Throttle } from '@nestjs/throttler';
 export class SolicitantesController {
 
   // Constantes para manejo de paginación y formato de fechas
-  private readonly PAGE_SIZE = 5;
-  private readonly TIME_ZONE = 'America/Bogota';
-  private readonly DATE_FORMAT = 'dd/MM/yyyy HH:mm:ss';
+  private readonly PAGE_SIZE = this.configService.get<number>("pagination.page_size");
+  private readonly TIME_ZONE = this.configService.get<string>("date.time_zone");
+  private readonly DATE_FORMAT = this.configService.get<string>("date.date_format");
   private readonly DATE_BIRTH_FORMAT = 'yyyy-MM-dd';
 
   private readonly logger = new Logger(SolicitantesController.name);
 
-  constructor(private readonly solicitantesService: SolicitantesService) {}
+  constructor(
+    private readonly solicitantesService: SolicitantesService,
+    private readonly configService: ConfigService
+  ) {}
 
 
   /**

@@ -16,6 +16,7 @@ import { UserPaginateResponseDto } from './dto/response/user-paginate-response.d
 import { UserResponseDto } from './dto/response/user-response.dto';
 import { GenericApiResponseDto } from '../common/dto/generic-api-response.dto';
 import { Throttle } from '@nestjs/throttler';
+import { ConfigService } from '@nestjs/config';
 
 
 @ApiTags('users')
@@ -28,13 +29,16 @@ import { Throttle } from '@nestjs/throttler';
 @Controller('users')
 export class UsersController {
 
-  private readonly PAGE_SIZE = 5;
-  private readonly TIME_ZONE = 'America/Bogota';
-  private readonly DATE_FORMAT = 'dd/MM/yyyy HH:mm:ss';
+  private readonly PAGE_SIZE = this.configService.get<number>("pagination.page_size");
+  private readonly TIME_ZONE = this.configService.get<string>("date.time_zone");
+  private readonly DATE_FORMAT = this.configService.get<string>("date.date_format");
 
   private readonly logger = new Logger(UsersController.name);
 
-  constructor(private readonly usersService: UsersService) { }
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly configService: ConfigService
+  ) { }
 
 
   /**
