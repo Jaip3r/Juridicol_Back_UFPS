@@ -1,85 +1,141 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+# Juridicol Back UFPS
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Descripción
 
-## Description
+Este proyecto es una parte integral del sistema de gestión de consultas Juridicol UFPS. Desarrollado con el framework [NestJS](https://nestjs.com), se beneficia de su eficiencia, escalabilidad y facilidad de mantenimiento. Además, utiliza [Prisma ORM](https://www.prisma.io) para simplificar la interacción con las bases de datos.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Requisitos previos
 
-## Project setup
+Antes de empezar, asegúrate de tener instalados los siguientes programas:
+
+- **[Node.js](https://nodejs.org)** (versión recomendada: `18.x` o superior)
+- **[npm](https://www.npmjs.com/)**
+- **Base de datos:** PostgreSQL, asegúrate de crear o tener acceso a la base de datos configurada en `DATABASE_URL`.
+
+## Instalación
+
+Clona este repositorio e instala las dependencias:
 
 ```bash
+$ git clone https://github.com/Jaip3r/Juridicol_Back_UFPS.git
+$ cd Juridicol_Back_UFPS
 $ npm install
 ```
 
-## Compile and run the project
+## Estructura del proyecto
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+src/
+├── archivos/               # Módulo para la gestión de archivos
+├── auth/                   # Módulo para la gestión de autenticación
+├── consultas/              # Módulo para la gestión de consultas
+├── mail/                   # Módulo para la gestión de correos
+├── solicitantes/           # Módulo para la gestión de solicitantes
+├── storage/                # Módulo para la gestión de almacenamiento
+├── users/                  # Módulo para la gestión de usuarios
+├── config/                 # Módulo de configuración
+├── common/                 # Código para uso compartido (filtros, interceptores, etc.)
+├── prisma/                 # Archivos relacionados con Prisma (configuración del cliente, extensiones, etc.)
+├── app.module.ts           # Módulo raíz
+├── main.ts                 # Punto de entrada principal
 ```
 
-## Run tests
+## Configuración del entorno
+
+El proyecto usa `dotenv-cli` para el manejo de múltiples archivos `.env` según el entorno:
+
+- `.env.development`: Variables para entorno de desarrollo.
+- `.env.test`: Variables para entorno de pruebas.
+- `.env`: Variables por defecto (para el entorno de producción).
+
+Asegúrate de configurar correctamente estos archivos antes de ejecutar el proyecto para el entono especifico. Ejemplo de estructura de `.env.development`:
 
 ```bash
-# unit tests
+DATABASE_URL="postgresql://user:password@localhost:5432/mydb?schema=public"
+ACCESS_TOKEN_SECRET="tu_access_token_secret"
+REFRESH_TOKEN_SECRET="tu_refresh_token_secret"
+SENDGRID_API_KEY="tusendgridapikey"
+SENDGRID_SENDER_EMAIL="tuemail@example.com"
+SENDGRID_SENDER_NAME="TuNombre"
+CLOUDFLARE_ACCESS_KEY="tucloudflareaccesskey"
+CLOUDFLARE_SECRET_ACCESS_KEY="tucloudflaresecret"
+CLOUDFLARE_ENDPOINT="https://tu-cloudflare-endpoint"
+CLOUDFLARE_BUCKET_NAME="nombre-del-bucket"
+PAGE_SIZE="5"
+``` 
+
+## Ejecución del proyecto
+
+### Prisma ORM
+
+* Aplica o crea migraciones para la base de datos
+
+    ```bash
+    # Crear una nueva migración basada en cambios en el esquema
+    $ npm run migrate:dev --nombreMigracion
+
+    # Resetea la base de datos y aplica migraciones
+    $ npm run migrate:reset
+    ``` 
+
+* Sincroniza el esquema sin migraciones:
+
+    ```bash
+    $ npm run db:push
+    ``` 
+
+* Opcional: Poblar la base de datos con datos semilla (si existe prisma/seed.ts):
+
+    ```bash
+    $ npm run db:seed
+    ``` 
+
+* Abrir Prisma Studio (una herramienta GUI para manejar la base de datos)::
+
+    ```bash
+    $ npm run prisma:studio
+    ``` 
+
+### Desarrollo
+
+Inicia el servidor en modo desarrollo con el siguiente comando:
+
+```bash
+$ npm run start:dev
+``` 
+Esto cargará las variables desde .env.development y habilitará la recarga automática del código.
+
+**Nota:** Si es la primera vez que ejecutas el proyecto, priemero debes ejecutar uno de los 2 comandos especificados para aplicar migraciones (migrate:dev o db:push) para inicializar el esquema de base de datos.
+
+### Pruebas
+
+```bash
+# Ejecutar todas las pruebas unitarias
 $ npm run test
 
-# e2e tests
-$ npm run test:e2e
+# Modo interactivo para pruebas
+$ npm run test:watch
 
-# test coverage
+# Pruebas de cobertura
 $ npm run test:cov
-```
 
-## Resources
+# Pruebas de extremo a extremo
+$ npm run test:e2e
+``` 
 
-Check out a few resources that may come in handy when working with NestJS:
+Las pruebas cargan variables desde el archivo .env.test.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Producción
 
-## Support
+Para construir y ejecutar el proyecto en producción:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+# Genera el cliente prisma, aplica las migraciones y construye la versión final del aplicativo
+$ npm run production:build
 
-## Stay in touch
+# Inicia el servidor
+$ npm run start:prod
+``` 
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+**Nota:** Aqui es donde entra el entorno Docker

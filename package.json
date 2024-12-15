@@ -1,8 +1,8 @@
 {
   "name": "juridicol-back",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Proyecto Juridicol UFPS",
+  "author": "Jaider Oliveros",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
