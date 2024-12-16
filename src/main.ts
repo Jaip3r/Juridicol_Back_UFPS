@@ -7,6 +7,7 @@ import * as cookieParser from 'cookie-parser';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { SolicitanteDto } from './solicitantes/dto/solicitante.dto';
 import { SolicitantePaginateResponseDto } from './solicitantes/dto/response/solicitante-paginate-reponse.dto';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
 
@@ -19,7 +20,8 @@ async function bootstrap() {
   app.use(helmet());
 
   // Logger de pino
-  app.useLogger(app.get(Logger));
+  const logger = app.get(Logger); 
+  app.useLogger(logger);
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
 
   // Habilitar CORS
@@ -53,8 +55,14 @@ async function bootstrap() {
   });
   SwaggerModule.setup("docs", app, document);
 
-  await app.listen(3000, () => {
-    console.log(`Server listening on port 3000`);
+  // Uso del configService
+  const configService = app.get(ConfigService);
+
+  // Mapeamos el puerto especificado
+  const port = configService.get<number>("port");
+
+  await app.listen(port, () => {
+    logger.log(`Server listening on port ${port}`);
   });
 
 }

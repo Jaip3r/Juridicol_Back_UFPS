@@ -52,6 +52,7 @@ El proyecto usa `dotenv-cli` para el manejo de múltiples archivos `.env` según
 Asegúrate de configurar correctamente estos archivos antes de ejecutar el proyecto para el entono especifico. Ejemplo de estructura de `.env.development`:
 
 ```bash
+PORT="1232"
 DATABASE_URL="postgresql://user:password@localhost:5432/mydb?schema=public"
 ACCESS_TOKEN_SECRET="tu_access_token_secret"
 REFRESH_TOKEN_SECRET="tu_refresh_token_secret"
@@ -105,6 +106,8 @@ Inicia el servidor en modo desarrollo con el siguiente comando:
 $ npm run start:dev
 ``` 
 Esto cargará las variables desde .env.development y habilitará la recarga automática del código.
+
+La API estará disponible en http://localhost:PORT y su documentación en La API estará disponible en http://localhost:PORT/docs.
 
 **Nota:** Si es la primera vez que ejecutas el proyecto, priemero debes ejecutar uno de los 2 comandos especificados para aplicar migraciones (migrate:dev o db:push) para inicializar el esquema de base de datos.
 
